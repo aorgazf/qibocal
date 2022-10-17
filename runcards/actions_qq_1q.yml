@@ -24,15 +24,15 @@ actions:
   #   software_averages: 1
   #   points: 10
 
-  qubit_spectroscopy:
-    fast_start: -5_000_000
-    fast_end: 5_000_000
-    fast_step: 200_000
-    precision_start: -500_000
-    precision_end: 500_000
-    precision_step: 20_000
-    software_averages: 1
-    points: 10
+  # qubit_spectroscopy:
+  #   fast_start: -5_000_000
+  #   fast_end: 5_000_000
+  #   fast_step: 200_000
+  #   precision_start: -500_000
+  #   precision_end: 500_000
+  #   precision_step: 20_000
+  #   software_averages: 1
+  #   points: 10
 
   # qubit_attenuation:
   #   freq_start: -100.e+6
@@ -106,10 +106,10 @@ actions:
   #   software_averages: 1
   #   points: 1
 
-  # allXY:
-  #   beta_param: Null
-  #   software_averages: 1
-  #   points: 1
+  allXY:
+    beta_param: Null
+    software_averages: 1
+    points: 1
 
   # calibrate_qubit_states:
   #   niter: 1024
