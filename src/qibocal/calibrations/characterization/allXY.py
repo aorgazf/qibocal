@@ -4,6 +4,7 @@ from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import PulseSequence
 
 from qibocal import plots
+from qibocal.calibrations.characterization.utils import iq_to_prob
 from qibocal.data import Dataset
 from qibocal.decorators import plot
 from qibocal.fitting.methods import drag_tunning_fit
@@ -114,22 +115,13 @@ def allXY_iteration(
 
     # FIXME: Waiting to be able to pass qpucard to qibolab
     ro_pulse_test = platform.create_qubit_readout_pulse(qubit, start=4)
-    platform.ro_port[qubit].lo_frequency = (
-        platform.characterization["single_qubit"][qubit]["resonator_freq"]
-        - ro_pulse_test.frequency
-    )
-
     qd_pulse_test = platform.create_qubit_drive_pulse(qubit, start=0, duration=4)
-    platform.qd_port[qubit].lo_frequency = (
-        platform.characterization["single_qubit"][qubit]["qubit_freq"]
-        - qd_pulse_test.frequency
-    )
 
-    state0_voltage = complex(
-        platform.characterization["single_qubit"][qubit]["state0_voltage"]
+    mean_gnd = complex(
+        platform.characterization["single_qubit"][qubit]["mean_gnd_states"]
     )
-    state1_voltage = complex(
-        platform.characterization["single_qubit"][qubit]["state1_voltage"]
+    mean_exc = complex(
+        platform.characterization["single_qubit"][qubit]["mean_exc_states"]
     )
 
     data = Dataset(
@@ -156,10 +148,7 @@ def allXY_iteration(
                     ro_pulse.serial
                 ]
 
-                prob = np.abs(msr * 1e6 - state1_voltage) / np.abs(
-                    state1_voltage - state0_voltage
-                )
-                prob = (2 * prob) - 1
+                prob = iq_to_prob(i, q, mean_gnd, mean_exc)
 
                 results = {
                     "MSR[V]": msr,
