@@ -113,7 +113,6 @@ def allXY_iteration(
     points=10,
 ):
 
-    # FIXME: Waiting to be able to pass qpucard to qibolab
     ro_pulse_test = platform.create_qubit_readout_pulse(qubit, start=4)
     qd_pulse_test = platform.create_qubit_drive_pulse(qubit, start=0, duration=4)
 
@@ -175,22 +174,14 @@ def drag_pulse_tunning(
     points=10,
 ):
 
-    # platform.reload_settings()
-
-    # FIXME: Waiting to be able to pass qpucard to qibolab
-    ro_pulse_test = platform.create_qubit_readout_pulse(qubit, start=4)
-    platform.ro_port[qubit].lo_frequency = (
-        platform.characterization["single_qubit"][qubit]["resonator_freq"]
-        - ro_pulse_test.frequency
-    )
-
-    qd_pulse_test = platform.create_qubit_drive_pulse(qubit, start=0, duration=4)
-    platform.qd_port[qubit].lo_frequency = (
-        platform.characterization["single_qubit"][qubit]["qubit_freq"]
-        - qd_pulse_test.frequency
-    )
-
     data = Dataset(name=f"data_q{qubit}", quantities={"beta_param": "dimensionless"})
+
+    mean_gnd = complex(
+        platform.characterization["single_qubit"][qubit]["mean_gnd_states"]
+    )
+    mean_exc = complex(
+        platform.characterization["single_qubit"][qubit]["mean_exc_states"]
+    )
 
     count = 0
     for beta_param in np.arange(beta_start, beta_end, beta_step).round(4):
@@ -228,6 +219,7 @@ def drag_pulse_tunning(
         seq1.add(RY_drag_pulse)
         seq1.add(ro_pulse)
         msr1, i1, q1, phase1 = platform.execute_pulse_sequence(seq1)[ro_pulse.serial]
+        prob1 = iq_to_prob(i1, q1, mean_gnd, mean_exc)
 
         # drag pulse RY(pi/2)
         RY90_drag_pulse = platform.create_RX90_drag_pulse(
@@ -244,8 +236,9 @@ def drag_pulse_tunning(
         seq2.add(RX_drag_pulse)
         seq2.add(ro_pulse)
         msr2, phase2, i2, q2 = platform.execute_pulse_sequence(seq2)[ro_pulse.serial]
+        prob2 = iq_to_prob(i2, q2, mean_gnd, mean_exc)
         results = {
-            "MSR[V]": msr1 - msr2,
+            "MSR[V]": prob1 - prob2,
             "i[V]": i1 - i2,
             "q[V]": q1 - q2,
             "phase[deg]": phase1 - phase2,
