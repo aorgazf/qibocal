@@ -14,7 +14,7 @@ from qibocal.fitting.methods import drag_tunning_fit
 
 
 @plot("cryoscope", plots.cryoscope)
-def cryoscope(
+def cz_tune(
     platform: AbstractPlatform,
     qubit: int,
     flux_pulse_duration_start,

@@ -16,9 +16,15 @@ def cryoscope(folder, routine, qubit, format):
     MY_tag = "MY"
     MZ_tag = "MZ"
 
-    z = data.get_values("MSR", "uV")[data.df["component"] == MZ_tag].to_numpy()
-    x = data.get_values("MSR", "uV")[data.df["component"] == MX_tag].to_numpy()
-    y = data.get_values("MSR", "uV")[data.df["component"] == MY_tag].to_numpy()
+    z = data.get_values("prob", "dimensionless")[
+        data.df["component"] == MZ_tag
+    ].to_numpy()
+    x = data.get_values("prob", "dimensionless")[
+        data.df["component"] == MX_tag
+    ].to_numpy()
+    y = data.get_values("prob", "dimensionless")[
+        data.df["component"] == MY_tag
+    ].to_numpy()
     x = x[: len(z)]
     y = y[: len(z)]
 
@@ -28,7 +34,7 @@ def cryoscope(folder, routine, qubit, format):
     flux_pulse_amplitude = data.get_values("flux_pulse_amplitude", "dimensionless")[
         data.df["component"] == MZ_tag
     ].to_numpy()
-    phi = np.arctan2((y - np.mean(z)), (x - np.mean(z)))
+    phi = np.arctan2(y, x)
     # phi = np.unwrap(phi)
 
     fig = make_subplots(
@@ -55,7 +61,7 @@ def cryoscope(folder, routine, qubit, format):
     fig.add_trace(
         go.Scatter(
             x=flux_pulse_duration,
-            y=data.get_values("MSR", "uV")[data.df["component"] == MZ_tag][
+            y=data.get_values("prob", "dimensionless")[data.df["component"] == MZ_tag][
                 data.df["flux_pulse_amplitude"] == flux_pulse_amplitude[-1]
             ].to_numpy(),
             name="z",
@@ -67,7 +73,7 @@ def cryoscope(folder, routine, qubit, format):
     fig.add_trace(
         go.Scatter(
             x=flux_pulse_duration,
-            y=data.get_values("MSR", "uV")[data.df["component"] == MX_tag][
+            y=data.get_values("prob", "dimensionless")[data.df["component"] == MX_tag][
                 data.df["flux_pulse_amplitude"] == flux_pulse_amplitude[-1]
             ].to_numpy(),
             name="x",
@@ -79,7 +85,7 @@ def cryoscope(folder, routine, qubit, format):
     fig.add_trace(
         go.Scatter(
             x=flux_pulse_duration,
-            y=data.get_values("MSR", "uV")[data.df["component"] == MY_tag][
+            y=data.get_values("prob", "dimensionless")[data.df["component"] == MY_tag][
                 data.df["flux_pulse_amplitude"] == flux_pulse_amplitude[-1]
             ].to_numpy(),
             name="y",
@@ -99,13 +105,13 @@ def cryoscope(folder, routine, qubit, format):
     ].unique()
 
     for amplitude in amplitudes:
-        z = data.get_values("MSR", "uV")[data.df["component"] == MZ_tag][
+        z = data.get_values("prob", "dimensionless")[data.df["component"] == MZ_tag][
             data.df["flux_pulse_amplitude"] == amplitude
         ].to_numpy()
-        x = data.get_values("MSR", "uV")[data.df["component"] == MX_tag][
+        x = data.get_values("prob", "dimensionless")[data.df["component"] == MX_tag][
             data.df["flux_pulse_amplitude"] == amplitude
         ].to_numpy()
-        y = data.get_values("MSR", "uV")[data.df["component"] == MY_tag][
+        y = data.get_values("prob", "dimensionless")[data.df["component"] == MY_tag][
             data.df["flux_pulse_amplitude"] == amplitude
         ].to_numpy()
         x = x[: len(z)]

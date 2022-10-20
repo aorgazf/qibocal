@@ -47,6 +47,7 @@ def cryoscope(
         duration=flux_pulse_duration_start,  # sweep to produce oscillations [300 to 400ns] in steps od 1ns? or 4?
         amplitude=flux_pulse_amplitude_start,  # fix for each run
         shape=Rectangular(),  # should be rectangular, but it gets distorted
+        relative_phase=0,
         channel=platform.qubit_channel_map[qubit][2],
         qubit=qubit,
     )
