@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+from cProfile import label
+
+import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
+import scipy.signal as ss
 from plotly.subplots import make_subplots
+from scipy.optimize import curve_fit
 
 from qibocal.data import Data, Dataset
 from qibocal.fitting.utils import cos, exp, flipping, lorenzian, rabi, ramsey
@@ -38,8 +43,8 @@ def cryoscope(folder, routine, qubit, format):
     # phi = np.unwrap(phi)
 
     fig = make_subplots(
-        rows=3,
-        cols=2,
+        rows=2,
+        cols=1,
         horizontal_spacing=0.1,
         vertical_spacing=0.1,
         subplot_titles=(
@@ -52,46 +57,10 @@ def cryoscope(folder, routine, qubit, format):
             x=flux_pulse_duration,
             y=flux_pulse_amplitude,
             z=phi,
-            colorbar_x=0.46,
+            colorbar=dict(len=0.46, y=0.75),
         ),
         row=1,
         col=1,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=flux_pulse_duration,
-            y=data.get_values("prob", "dimensionless")[data.df["component"] == MZ_tag][
-                data.df["flux_pulse_amplitude"] == flux_pulse_amplitude[-1]
-            ].to_numpy(),
-            name="z",
-        ),
-        row=1,
-        col=2,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=flux_pulse_duration,
-            y=data.get_values("prob", "dimensionless")[data.df["component"] == MX_tag][
-                data.df["flux_pulse_amplitude"] == flux_pulse_amplitude[-1]
-            ].to_numpy(),
-            name="x",
-        ),
-        row=1,
-        col=2,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=flux_pulse_duration,
-            y=data.get_values("prob", "dimensionless")[data.df["component"] == MY_tag][
-                data.df["flux_pulse_amplitude"] == flux_pulse_amplitude[-1]
-            ].to_numpy(),
-            name="y",
-        ),
-        row=1,
-        col=2,
     )
 
     ####################################################################################
@@ -144,19 +113,10 @@ def cryoscope(folder, routine, qubit, format):
             x=flux_pulse_duration_array,
             y=flux_pulse_amplitude_array,
             z=freq_shift_array,
+            colorbar=dict(len=0.46, y=0.5),
         ),
         row=2,
         col=1,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=flux_pulse_duration,
-            y=freq_shift,
-            name="frequency shift",
-        ),
-        row=2,
-        col=2,
     )
 
     fig.update_layout(
@@ -207,6 +167,8 @@ def cryoscope(folder, routine, qubit, format):
 
     return fig
 
+
+"""
     ######################################################################
     # STEP 1: run cryosocpe analysis simulation for different awg_pulse amplitudes
     # and obtaine mesured detunning due to your experimental setup
@@ -305,11 +267,7 @@ def cryoscope(folder, routine, qubit, format):
     plt.ylabel("Awg flux pulses")
     plt.show()
 
-
-import matplotlib.pyplot as plt
-import numpy as np
-import scipy.signal as ss
-from scipy.optimize import curve_fit
+"""
 
 
 def normalize_sincos(data, window_size_frac=61, window_size=None, do_envelope=True):
@@ -421,3 +379,209 @@ def cryoscope_step_response(t, p, awg_reconstructed_pulse):
     b_fit = p[:2]
     a_fit = p[2:]
     return lfilter(b_fit, a_fit, awg_reconstructed_pulse)
+
+
+# For cryoscope
+def cryoscope_raw_slider(folder, routine, qubit, format):
+    data = Dataset.load_data(folder, routine, format, f"data_q{qubit}")
+    import numpy as np
+
+    MX_tag = "MX"
+    MY_tag = "MY"
+    MZ_tag = "MZ"
+
+    z = data.get_values("prob", "dimensionless")[
+        data.df["component"] == MZ_tag
+    ].to_numpy()
+    x = data.get_values("prob", "dimensionless")[
+        data.df["component"] == MX_tag
+    ].to_numpy()
+    y = data.get_values("prob", "dimensionless")[
+        data.df["component"] == MY_tag
+    ].to_numpy()
+    x = x[: len(z)]
+    y = y[: len(z)]
+
+    flux_pulse_duration = data.get_values("flux_pulse_duration", "ns")[
+        data.df["component"] == MZ_tag
+    ].to_numpy()
+    flux_pulse_amplitude_unique = data.get_values(
+        "flux_pulse_amplitude", "dimensionless"
+    )[data.df["component"] == MZ_tag].to_numpy()
+
+    phi = np.arctan2(y, x)
+    # phi = np.unwrap(phi)
+
+    fig = go.Figure()
+
+    probs = [
+        data.get_values("prob", "dimensionless")[
+            data.df["component"] == MZ_tag
+        ].to_numpy(),
+        data.get_values("prob", "dimensionless")[
+            data.df["component"] == MX_tag
+        ].to_numpy(),
+        data.get_values("prob", "dimensionless")[
+            data.df["component"] == MY_tag
+        ].to_numpy(),
+    ]
+
+    flux_pulse_amplitude = [
+        data.get_values("flux_pulse_amplitude", "dimensionless")[
+            data.df["component"] == MZ_tag
+        ].to_numpy(),
+        data.get_values("flux_pulse_amplitude", "dimensionless")[
+            data.df["component"] == MX_tag
+        ].to_numpy(),
+        data.get_values("flux_pulse_amplitude", "dimensionless")[
+            data.df["component"] == MY_tag
+        ].to_numpy(),
+    ]
+
+    for i in range(len(flux_pulse_amplitude_unique)):
+        fig.add_trace(
+            go.Scatter(
+                visible=False,
+                x=flux_pulse_duration,
+                y=probs[0][flux_pulse_amplitude[0] == flux_pulse_amplitude_unique[i]],
+                name=f"z _ {flux_pulse_amplitude_unique[i]}",
+            ),
+        )
+    for i in range(len(flux_pulse_amplitude_unique)):
+        fig.add_trace(
+            go.Scatter(
+                visible=False,
+                x=flux_pulse_duration,
+                y=probs[1][flux_pulse_amplitude[1] == flux_pulse_amplitude_unique[i]],
+                name=f"x _ {flux_pulse_amplitude_unique[i]}",
+            ),
+        )
+    for i in range(len(flux_pulse_amplitude_unique)):
+        fig.add_trace(
+            go.Scatter(
+                visible=False,
+                x=flux_pulse_duration,
+                y=probs[2][flux_pulse_amplitude[2] == flux_pulse_amplitude_unique[i]],
+                name=f"y _ {flux_pulse_amplitude_unique[i]}",
+            ),
+        )
+    # fig.data[-1].visible = True
+
+    # Create and add slider
+    steps = []
+    for i in range(len(flux_pulse_amplitude_unique)):
+        step = dict(
+            method="restyle",
+            args=["visible", [False] * len(fig.data)],
+        )
+        step["args"][1][i] = True  # Toggle i'th trace to "visible"
+        step["args"][1][i + len(flux_pulse_amplitude_unique)] = True
+        step["args"][1][i + 2 * len(flux_pulse_amplitude_unique)] = True
+        steps.append(step)
+    sliders = [dict(steps=steps)]
+    fig.layout.update(sliders=sliders)
+
+    return fig
+
+
+def cryoscope_phase_slider(folder, routine, qubit, format):
+    data = Dataset.load_data(folder, routine, format, f"data_q{qubit}")
+    import numpy as np
+
+    MX_tag = "MX"
+    MY_tag = "MY"
+    MZ_tag = "MZ"
+
+    z = data.get_values("prob", "dimensionless")[
+        data.df["component"] == MZ_tag
+    ].to_numpy()
+    x = data.get_values("prob", "dimensionless")[
+        data.df["component"] == MX_tag
+    ].to_numpy()
+    y = data.get_values("prob", "dimensionless")[
+        data.df["component"] == MY_tag
+    ].to_numpy()
+    x = x[: len(z)]
+    y = y[: len(z)]
+
+    flux_pulse_duration = data.get_values("flux_pulse_duration", "ns")[
+        data.df["component"] == MZ_tag
+    ].to_numpy()
+    flux_pulse_amplitude_unique = data.get_values(
+        "flux_pulse_amplitude", "dimensionless"
+    )[data.df["component"] == MZ_tag].to_numpy()
+
+    phi = np.arctan2(y, x)
+    # phi = np.unwrap(phi)
+
+    fig = go.Figure()
+
+    probs = [
+        data.get_values("prob", "dimensionless")[
+            data.df["component"] == MZ_tag
+        ].to_numpy(),
+        data.get_values("prob", "dimensionless")[
+            data.df["component"] == MX_tag
+        ].to_numpy(),
+        data.get_values("prob", "dimensionless")[
+            data.df["component"] == MY_tag
+        ].to_numpy(),
+    ]
+
+    flux_pulse_amplitude = [
+        data.get_values("flux_pulse_amplitude", "dimensionless")[
+            data.df["component"] == MZ_tag
+        ].to_numpy(),
+        data.get_values("flux_pulse_amplitude", "dimensionless")[
+            data.df["component"] == MX_tag
+        ].to_numpy(),
+        data.get_values("flux_pulse_amplitude", "dimensionless")[
+            data.df["component"] == MY_tag
+        ].to_numpy(),
+    ]
+
+    for i in range(len(flux_pulse_amplitude_unique)):
+        fig.add_trace(
+            go.Scatter(
+                visible=False,
+                x=flux_pulse_duration,
+                y=probs[0][flux_pulse_amplitude[0] == flux_pulse_amplitude_unique[i]],
+                name=f"z _ {flux_pulse_amplitude_unique[i]}",
+            ),
+        )
+    for i in range(len(flux_pulse_amplitude_unique)):
+        fig.add_trace(
+            go.Scatter(
+                visible=False,
+                x=flux_pulse_duration,
+                y=probs[1][flux_pulse_amplitude[1] == flux_pulse_amplitude_unique[i]],
+                name=f"x _ {flux_pulse_amplitude_unique[i]}",
+            ),
+        )
+    for i in range(len(flux_pulse_amplitude_unique)):
+        fig.add_trace(
+            go.Scatter(
+                visible=False,
+                x=flux_pulse_duration,
+                y=probs[2][flux_pulse_amplitude[2] == flux_pulse_amplitude_unique[i]],
+                name=f"y _ {flux_pulse_amplitude_unique[i]}",
+            ),
+        )
+    # fig.data[-1].visible = True
+
+    # Create and add slider
+    steps = []
+    for i in range(len(flux_pulse_amplitude_unique)):
+        step = dict(
+            method="restyle",
+            args=["visible", [False] * len(fig.data)],
+            label=str(i),
+        )
+        step["args"][1][i] = True  # Toggle i'th trace to "visible"
+        step["args"][1][i + len(flux_pulse_amplitude_unique)] = True
+        step["args"][1][i + 2 * len(flux_pulse_amplitude_unique)] = True
+        steps.append(step)
+    sliders = [dict(steps=steps, active=10, currentvalue={"prefix": "Amplitude"})]
+    fig.update_layout(sliders=sliders)
+
+    return fig

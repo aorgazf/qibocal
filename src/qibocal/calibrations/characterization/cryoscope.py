@@ -10,6 +10,7 @@ from qibocal.decorators import plot
 
 
 @plot("cryoscope", plots.cryoscope)
+@plot("cryoscope slider", plots.cryoscope_raw_slider)
 def cryoscope(
     platform: AbstractPlatform,
     qubit: int,
