@@ -170,7 +170,7 @@ def cryoscope(folder, routine, qubit, format):
     # Plot the unwrapped
     figs += [go.Figure()]
     phi_unwrap = np.unwrap(
-        phi, axis=1
+        phi, axis=0
     )  # Axis 0 = unwrap along row <==> amplitude / Axis 1 = unwrap along row <==> duration
     figs[3].add_trace(
         go.Heatmap(
@@ -188,8 +188,9 @@ def cryoscope(folder, routine, qubit, format):
     # Plot frequency shift (z) for amplitude duration = real pulse
     figs += [go.Figure()]
 
-    dt = np.diff(duration_unique) * 1e-9
-    dphi_dt_unwrap = np.diff(phi_unwrap, axis=1) / dt
+    # dt = np.diff(duration_unique) * 1e-9
+    # dphi_dt_unwrap = np.diff(phi_unwrap, axis=1) / dt
+    dphi_dt_unwrap = phi_unwrap * 1e9 / duration_unique
     detuning = dphi_dt_unwrap / (2 * np.pi)
     figs[4].add_trace(
         go.Heatmap(
@@ -227,7 +228,7 @@ def cryoscope(folder, routine, qubit, format):
     a_b_fits = np.empty((len(amplitude_unique), 4))
     for i, amp in enumerate(amplitude_unique):
         awg_reconstructed_pulse = np.interp(
-            np.append(detuning[i, :], [detuning_median[i]]),
+            detuning[i, :],  # np.append(detuning[i, :], [detuning_median[i]]),
             detuning_median,
             amplitude_unique,
         )
@@ -284,7 +285,7 @@ def cryoscope(folder, routine, qubit, format):
 
     # print(amplitudes, freq_shift_median_array)
 
-    return figs[2]
+    return figs
 
 
 """    ####################################################################################
