@@ -8,6 +8,7 @@ import scipy
 import scipy.signal as ss
 from plotly.subplots import make_subplots
 from scipy.optimize import curve_fit
+from scipy.signal import lfilter
 
 from qibocal.data import Data, Dataset
 from qibocal.fitting.utils import cos, exp, flipping, lorenzian, rabi, ramsey
@@ -209,7 +210,7 @@ def cryoscope(folder, routine, qubit, format):
     figs += [
         go.Figure()
     ]  # 5 for the stable detuning frequency as a function of amplitude
-    figs += [go.Figure()]  # 6 for the reconstructed pulse
+    figs += [go.Figure()]  # 6 for the reconstructed pulse and its fit
 
     detuning_median = np.median(detuning, axis=1)  # Stable detuning after a long pulse
     figs[5].add_trace(
@@ -240,7 +241,6 @@ def cryoscope(folder, routine, qubit, format):
                 name=f"A = {amp}",
             ),
         )
-
         b_fit, a_fit = cryoscope_fit(
             duration_unique,
             amp * np.ones(len(duration_unique)),
@@ -250,14 +250,28 @@ def cryoscope(folder, routine, qubit, format):
         pulses[i, :] = awg_reconstructed_pulse
 
     figs[6].data[-1].visible = True
+
     steps = []
-    for i in range(len(figs[6].data)):
+    for i, amp in enumerate(amplitude_unique):
+        figs[6].add_trace(
+            go.Scatter(
+                visible=False,
+                x=duration_unique,
+                y=lfilter(
+                    a_b_fits[i, 2:-1],
+                    a_b_fits[i, 0:2],
+                    amp * np.ones(len(duration_unique)),
+                ),
+                name=f"A_fit = {amp}",
+            ),
+        )
         step = dict(
             method="restyle",
-            args=["visible", [False] * len(figs[6].data)],
-            label=str(amplitude_unique[i]),
+            args=["visible", [False] * 2 * len(amplitude_unique)],
+            label=str(amp),
         )
         step["args"][1][i] = True  # Toggle i'th trace to "visible"
+        step["args"][1][i + len(amplitude_unique)] = True
         steps.append(step)
     sliders = [
         dict(steps=steps, active=10, currentvalue={"prefix": "Amplitude (a.u.) = "})
@@ -308,7 +322,6 @@ def cryoscope_step_response(t, p, awg_reconstructed_pulse):
     # https://arxiv.org/pdf/1907.04818.pdf (page 11 - filter formula S22)
     # p = [b0 = 1−k +k ·α, b1 = −(1−k)·(1−α),a0 = 1 and a1 = −(1−α)]
     # p = [b0, b1, a0, a1]
-    from scipy.signal import lfilter
 
     b_fit = p[:2]
     a_fit = p[2:]
