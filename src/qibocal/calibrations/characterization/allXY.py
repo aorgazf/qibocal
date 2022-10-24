@@ -58,16 +58,16 @@ def allXY(
 
     # FIXME: Waiting to be able to pass qpucard to qibolab
     ro_pulse_test = platform.create_qubit_readout_pulse(qubit, start=4)
-    platform.ro_port[qubit].lo_frequency = (
-        platform.characterization["single_qubit"][qubit]["resonator_freq"]
-        - ro_pulse_test.frequency
-    )
+    # platform.ro_port[qubit].lo_frequency = (
+    #     platform.characterization["single_qubit"][qubit]["resonator_freq"]
+    #     - ro_pulse_test.frequency
+    # )
 
     qd_pulse_test = platform.create_qubit_drive_pulse(qubit, start=0, duration=4)
-    platform.qd_port[qubit].lo_frequency = (
-        platform.characterization["single_qubit"][qubit]["qubit_freq"]
-        - qd_pulse_test.frequency
-    )
+    # platform.qd_port[qubit].lo_frequency = (
+    #     platform.characterization["single_qubit"][qubit]["qubit_freq"]
+    #     - qd_pulse_test.frequency
+    # )
 
     count = 0
     for _ in range(software_averages):

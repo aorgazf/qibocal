@@ -10,7 +10,7 @@ from qibocal.decorators import plot
 
 
 @plot("cryoscope", plots.cryoscope)
-@plot("cryoscope slider", plots.cryoscope_raw_slider)
+# @plot("cryoscope slider", plots.cryoscope_raw_slider)
 def cryoscope(
     platform: AbstractPlatform,
     qubit: int,
@@ -44,7 +44,7 @@ def cryoscope(
     )
     # apply a detuning flux pulse
     flux_pulse = FluxPulse(
-        start=initial_RY90_pulse.se_finish,
+        start=initial_RY90_pulse.se_finish + 8,
         duration=flux_pulse_duration_start,  # sweep to produce oscillations [300 to 400ns] in steps od 1ns? or 4?
         amplitude=flux_pulse_amplitude_start,  # fix for each run
         shape=Rectangular(),  # should be rectangular, but it gets distorted
@@ -55,12 +55,12 @@ def cryoscope(
 
     # rotate around the X asis Rx(-pi/2) to meassure Y component
     RX90_pulse = platform.create_RX90_pulse(
-        qubit, start=flux_pulse.se_finish, relative_phase=np.pi
+        qubit, start=flux_pulse.se_finish + 8, relative_phase=np.pi
     )
 
     # rotate around the Y asis Ry(pi/2) to meassure X component
     RY90_pulse = platform.create_RX90_pulse(
-        qubit, start=flux_pulse.se_finish, relative_phase=np.pi / 2
+        qubit, start=flux_pulse.se_finish + 8, relative_phase=np.pi / 2
     )
 
     # add ro pulse at the end of each sequence
@@ -88,34 +88,37 @@ def cryoscope(
     amplitudes = np.arange(
         flux_pulse_amplitude_start, flux_pulse_amplitude_end, flux_pulse_amplitude_step
     )
-    durations_more = np.arange(
-        flux_pulse_duration_start,
-        int(
-            flux_pulse_duration_start
-            + (flux_pulse_duration_end - flux_pulse_duration_start)
-            / 8
-            // flux_pulse_duration_step
-            * flux_pulse_duration_step
-        ),
-        flux_pulse_duration_step,
+    # durations_more = np.arange(
+    #     flux_pulse_duration_start,
+    #     int(
+    #         flux_pulse_duration_start
+    #         + (flux_pulse_duration_end - flux_pulse_duration_start)
+    #         / 8
+    #         // flux_pulse_duration_step
+    #         * flux_pulse_duration_step
+    #     ),
+    #     flux_pulse_duration_step,
+    # )
+    # durations_less = np.arange(
+    #     int(
+    #         flux_pulse_duration_start
+    #         + (
+    #             (
+    #                 (flux_pulse_duration_end - flux_pulse_duration_start)
+    #                 / 8
+    #                 // flux_pulse_duration_step
+    #             )
+    #             + 1
+    #         )
+    #         * flux_pulse_duration_step
+    #     ),
+    #     flux_pulse_duration_end,
+    #     flux_pulse_duration_step * 4,
+    # )
+    # durations = np.concatenate((durations_more, durations_less))
+    durations = np.arange(
+        flux_pulse_duration_start, flux_pulse_duration_end, flux_pulse_duration_step
     )
-    durations_less = np.arange(
-        int(
-            flux_pulse_duration_start
-            + (
-                (
-                    (flux_pulse_duration_end - flux_pulse_duration_start)
-                    / 8
-                    // flux_pulse_duration_step
-                )
-                + 1
-            )
-            * flux_pulse_duration_step
-        ),
-        flux_pulse_duration_end,
-        flux_pulse_duration_step * 4,
-    )
-    durations = np.concatenate((durations_more, durations_less))
     count = 0
 
     for amplitude in amplitudes:

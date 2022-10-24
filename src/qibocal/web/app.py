@@ -23,7 +23,7 @@ app.layout = html.Div(
         dcc.Interval(
             id="interval",
             # TODO: Perhaps the user should be allowed to change the refresh rate
-            interval=2000,
+            interval=4000,
             n_intervals=0,
             disabled=False,
         ),
