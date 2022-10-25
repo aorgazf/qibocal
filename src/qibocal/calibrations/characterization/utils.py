@@ -171,25 +171,9 @@ def rotate_to_distribution(data_exc, data_gnd):
 
 
 def iq_to_prob(i, q, mean_gnd, mean_exc):
-    import matplotlib.pyplot as plt
-
-    plt.plot(np.real(mean_gnd), np.imag(mean_gnd), "ok", alpha=0.3)
-    plt.plot(np.real(0), np.imag(0), "ok", alpha=0.3)
-    plt.plot(np.real(mean_exc), np.imag(mean_exc), "or", alpha=0.3)
-    # plt.plot(np.real(np.mean(iq_gnd)), np.imag(np.mean(iq_gnd)), "ok", markersize=10)
-    # plt.plot(np.real(np.mean(iq_exc)), np.imag(np.mean(iq_exc)), "or", markersize=10)
     state = i + 1j * q
-    plt.plot(np.real(state), np.imag(state), "ob", alpha=0.3)
     state = state - mean_gnd
-    plt.plot(np.real(state), np.imag(state), "ob", alpha=0.3)
     mean_exc = mean_exc - mean_gnd
-    plt.plot(np.real(mean_exc), np.imag(mean_exc), "or", alpha=0.3)
     state = state * np.exp(-1j * np.angle(mean_exc))
-    plt.plot(np.real(state), np.imag(state), "ob", alpha=0.3)
     mean_exc = mean_exc * np.exp(-1j * np.angle(mean_exc))
-    plt.plot(np.real(mean_exc), np.imag(mean_exc), "or", alpha=0.3)
-
-    plt.savefig("fig.png")
-    plt.close()
-
     return np.real(state) / np.real(mean_exc)
