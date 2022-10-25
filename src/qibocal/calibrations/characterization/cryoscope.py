@@ -69,11 +69,9 @@ def cryoscope(
     # build the sequences
     MX_seq = initial_RY90_pulse + flux_pulse + RY90_pulse + MZ_ro_pulse
     MY_seq = initial_RY90_pulse + flux_pulse + RX90_pulse + MZ_ro_pulse
-    MZ_seq = initial_RY90_pulse + flux_pulse + MZ_ro_pulse
 
     MX_tag = "MX"
     MY_tag = "MY"
-    MZ_tag = "MZ"
 
     data = Dataset(
         name=f"data_q{qubit}",
@@ -153,21 +151,6 @@ def cryoscope(
                     MY_results[2], MY_results[3], mean_gnd, mean_exc
                 ),
                 "component": MY_tag,
-                "flux_pulse_duration[ns]": duration,
-                "flux_pulse_amplitude[dimensionless]": amplitude,
-            }
-            data.add(results)
-
-            MZ_results = platform.execute_pulse_sequence(MZ_seq)[MZ_ro_pulse.serial]
-            results = {
-                "MSR[V]": MZ_results[0],
-                "i[V]": MZ_results[2],
-                "q[V]": MZ_results[3],
-                "phase[rad]": MZ_results[1],
-                "prob[dimensionless]": iq_to_prob(
-                    MZ_results[2], MZ_results[3], mean_gnd, mean_exc
-                ),
-                "component": MZ_tag,
                 "flux_pulse_duration[ns]": duration,
                 "flux_pulse_amplitude[dimensionless]": amplitude,
             }
