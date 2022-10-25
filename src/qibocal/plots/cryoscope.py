@@ -29,8 +29,8 @@ def cryoscope(folder, routine, qubit, format):
     y = data.get_values("prob", "dimensionless")[
         data.df["component"] == MY_tag
     ].to_numpy()
-    x = x[: len(z)]
-    y = y[: len(z)]
+    x = x[: len(y)]
+    y = y[: len(y)]
 
     amplitude = data.get_values("flux_pulse_amplitude", "dimensionless")
     duration = data.get_values("flux_pulse_duration", "ns")
