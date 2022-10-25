@@ -44,32 +44,20 @@ def cryoscope(folder, routine, qubit, format):
     ]
 
     # Making figure
-    figs = []
+    figs = {}
 
-    figs = [
-        make_subplots(
-            rows=2,
-            cols=1,
-            horizontal_spacing=0.1,
-            vertical_spacing=0.2,
-            subplot_titles=(
-                "X_raw",
-                "Y_raw",
-            ),
+    figs["raw"] = make_subplots(
+        rows=2,
+        cols=1,
+        horizontal_spacing=0.1,
+        vertical_spacing=0.2,
+        subplot_titles=(
+            "X_raw",
+            "Y_raw",
         ),
-        make_subplots(
-            rows=2,
-            cols=1,
-            horizontal_spacing=0.1,
-            vertical_spacing=0.2,
-            subplot_titles=(
-                "X_norm",
-                "Y_norm",
-            ),
-        ),
-    ]
+    )
 
-    figs[0].add_trace(
+    figs["raw"].add_trace(
         go.Heatmap(
             x=flux_pulse_duration,
             y=flux_pulse_amplitude,
@@ -80,7 +68,7 @@ def cryoscope(folder, routine, qubit, format):
         col=1,
     )
 
-    figs[0].add_trace(
+    figs["raw"].add_trace(
         go.Heatmap(
             x=flux_pulse_duration,
             y=flux_pulse_amplitude,
@@ -90,7 +78,7 @@ def cryoscope(folder, routine, qubit, format):
         row=2,
         col=1,
     )
-    figs[0].update_layout(
+    figs["raw"].update_layout(
         xaxis_title="Pulse duration (ns)",
         yaxis_title="Amplitude (a.u.)",
         xaxis2_title="Pulse duration (ns)",
@@ -99,6 +87,16 @@ def cryoscope(folder, routine, qubit, format):
     )
 
     # Smoothing and -1/1 center
+    figs["norm"] = make_subplots(
+        rows=2,
+        cols=1,
+        horizontal_spacing=0.1,
+        vertical_spacing=0.2,
+        subplot_titles=(
+            "X_norm",
+            "Y_norm",
+        ),
+    )
     smoothing = False
     x_norm = np.empty((len(amplitude_unique), len(duration_unique)))
     y_norm = np.empty((len(amplitude_unique), len(duration_unique)))
@@ -122,7 +120,7 @@ def cryoscope(folder, routine, qubit, format):
             y_norm[i, :n] = y_norm[i, :n] - 0.5
             y_norm[i, :n] = y_norm[i, :n] / max(abs(y_norm[i, :n]))
 
-    figs[1].add_trace(
+    figs["norm"].add_trace(
         go.Heatmap(
             x=duration_unique,
             y=amplitude_unique,
@@ -133,7 +131,7 @@ def cryoscope(folder, routine, qubit, format):
         col=1,
     )
 
-    figs[1].add_trace(
+    figs["norm"].add_trace(
         go.Heatmap(
             x=duration_unique,
             y=amplitude_unique,
@@ -143,7 +141,7 @@ def cryoscope(folder, routine, qubit, format):
         row=2,
         col=1,
     )
-    figs[1].update_layout(
+    figs["norm"].update_layout(
         xaxis_title="Pulse duration (ns)",
         yaxis_title="Amplitude (a.u.)",
         xaxis2_title="Pulse duration (ns)",
@@ -152,75 +150,174 @@ def cryoscope(folder, routine, qubit, format):
     )
 
     # Plot the phase between X and Y
-    figs += [go.Figure()]
+    figs["phi"] = go.Figure()
     phi = np.arctan2(x_norm, y_norm)
-    figs[2].add_trace(
+    figs["phi"].add_trace(
         go.Heatmap(
             x=duration_unique,
             y=amplitude_unique,
             z=phi,
         ),
     )
-    figs[2].update_layout(
+    figs["phi"].update_layout(
         xaxis_title="Pulse duration (ns)", yaxis_title="Amplitude (a.u.)", title=f"Phi"
     )
 
-    # Plot the unwrapped
-    figs += [go.Figure()]
+    # Plot the unwrapped along duration
+    figs["phi_unwrap_duration"] = go.Figure()
     phi_unwrap = np.unwrap(
-        phi, axis=0
+        phi, axis=1
     )  # Axis 0 = unwrap along row <==> amplitude / Axis 1 = unwrap along row <==> duration
-    figs[3].add_trace(
+    figs["phi_unwrap_duration"].add_trace(
         go.Heatmap(
             x=duration_unique,
             y=amplitude_unique,
             z=phi_unwrap,
         ),
     )
-    figs[3].update_layout(
+    figs["phi_unwrap_duration"].update_layout(
         xaxis_title="Pulse duration (ns)",
         yaxis_title="Amplitude (a.u.)",
-        title=f"Phi unwrapped",
+        title=f"Phi unwrapped along duration",
+    )
+
+    # Plot the unwrapped along amplitude
+    figs["phi_unwrap_amplitude"] = go.Figure()
+    phi_unwrap_amplitude = np.unwrap(
+        phi, axis=0
+    )  # Axis 0 = unwrap along row <==> amplitude / Axis 1 = unwrap along row <==> duration
+    figs["phi_unwrap_amplitude"].add_trace(
+        go.Heatmap(
+            x=duration_unique,
+            y=amplitude_unique,
+            z=phi_unwrap_amplitude,
+        ),
+    )
+    figs["phi_unwrap_amplitude"].update_layout(
+        xaxis_title="Pulse duration (ns)",
+        yaxis_title="Amplitude (a.u.)",
+        title=f"Phi unwrapped along amplitude",
     )
 
     # Plot frequency shift (z) for amplitude duration = real pulse
-    figs += [go.Figure()]
-
     dt = np.diff(duration_unique) * 1e-9
-    dphi_dt_unwrap = np.diff(phi_unwrap, axis=1) / dt
-    # dphi_dt_unwrap = phi_unwrap * 1e9 / duration_unique
+    dphi_dt_unwrap = np.abs(np.diff(phi_unwrap, axis=1) / dt)
+    dphi_dt_unwrap_amplitude = np.abs(np.diff(phi_unwrap_amplitude, axis=1) / dt)
+    dphi_dt_unwrap_mean = phi_unwrap * 1e9 / duration_unique
+    dphi_dt_unwrap_mean_amplitude = phi_unwrap_amplitude * 1e9 / duration_unique
+
+    detuning_mean = dphi_dt_unwrap_mean / (2 * np.pi)
+    detuning_mean_amplitude = dphi_dt_unwrap_mean_amplitude / (2 * np.pi)
     detuning = dphi_dt_unwrap / (2 * np.pi)
-    figs[4].add_trace(
+    detuning_amplitude = dphi_dt_unwrap_amplitude / (2 * np.pi)
+
+    figs["detuning_diff_duration"] = go.Figure()
+    figs["detuning_diff_duration"].add_trace(
         go.Heatmap(
             x=duration_unique,
             y=amplitude_unique,
             z=detuning,
         ),
     )
-    figs[4].update_layout(
+    figs["detuning_diff_duration"].update_layout(
         xaxis_title="Pulse duration (ns)",
         yaxis_title="Amplitude (a.u.)",
-        title=f"Detuning (Hz)",
+        title=f"Instant detuning unwrapped duration (Hz)",
+    )
+
+    figs["detuning_diff_amplitude"] = go.Figure()
+    figs["detuning_diff_amplitude"].add_trace(
+        go.Heatmap(
+            x=duration_unique,
+            y=amplitude_unique,
+            z=detuning_amplitude,
+        ),
+    )
+    figs["detuning_diff_amplitude"].update_layout(
+        xaxis_title="Pulse duration (ns)",
+        yaxis_title="Amplitude (a.u.)",
+        title=f"Instant detuning unwrapped amplitude (Hz)",
+    )
+
+    figs["detuning_mean_duration"] = go.Figure()
+    figs["detuning_mean_duration"].add_trace(
+        go.Heatmap(
+            x=duration_unique,
+            y=amplitude_unique,
+            z=detuning_mean,
+        ),
+    )
+    figs["detuning_mean_duration"].update_layout(
+        xaxis_title="Pulse duration (ns)",
+        yaxis_title="Amplitude (a.u.)",
+        title=f"Mean detuning unwrapped duration (Hz)",
+    )
+
+    figs["detuning_mean_amplitude"] = go.Figure()
+    figs["detuning_mean_amplitude"].add_trace(
+        go.Heatmap(
+            x=duration_unique,
+            y=amplitude_unique,
+            z=detuning,
+        ),
+    )
+    figs["detuning_mean_amplitude"].update_layout(
+        xaxis_title="Pulse duration (ns)",
+        yaxis_title="Amplitude (a.u.)",
+        title=f"Mean detuning unwrapped amplitude (Hz)",
     )
 
     # From the Amplitude(Detunning) function, reconstruct the pulse, Amplitude(time) from the measured detunning
-    figs += [
-        go.Figure()
-    ]  # 5 for the stable detuning frequency as a function of amplitude
-    figs += [go.Figure()]  # 6 for the reconstructed pulse and its fit
+    figs[
+        "detuning_vs_amplitude"
+    ] = go.Figure()  # 5 for the stable detuning frequency as a function of amplitude
 
     detuning_median = np.median(detuning, axis=1)  # Stable detuning after a long pulse
-    figs[5].add_trace(
+    detuning_median_amplitude = np.median(
+        detuning_amplitude, axis=1
+    )  # Stable detuning after a long pulse
+
+    figs["detuning_vs_amplitude"].add_trace(
         go.Scatter(
             x=amplitude_unique,
             y=detuning_median,
+            name="Median instant detuning unwrapped along duration",
         ),
     )
-    figs[5].update_layout(
+    figs["detuning_vs_amplitude"].add_trace(
+        go.Scatter(
+            x=amplitude_unique,
+            y=np.mean(detuning_mean, axis=1),  # detuning_mean[:, -1],
+            name="Mean detuning of longest pulse unwrapped along duration",
+        ),
+    )
+
+    figs["detuning_vs_amplitude"].add_trace(
+        go.Scatter(
+            x=amplitude_unique,
+            y=detuning_median_amplitude,
+            name="Median instant detuning unwrapped along amplitude",
+        ),
+    )
+    figs["detuning_vs_amplitude"].add_trace(
+        go.Scatter(
+            x=amplitude_unique,
+            y=np.mean(
+                detuning_mean_amplitude, axis=1
+            ),  # detuning_mean_amplitude[:, -1],
+            name="Mean detuning of longest pulse unwrapped along amplitude",
+        ),
+    )
+
+    figs["detuning_vs_amplitude"].update_layout(
         xaxis_title="Amplitude (a.u.)",
         yaxis_title="Detuning (Hz)",
         title=f"Detuning as a function of amplitude",
     )
+
+    figs[
+        "reconstructed_pulse"
+    ] = go.Figure()  # 6 for the reconstructed pulse and its fit
 
     pulses = np.empty((len(amplitude_unique), len(duration_unique)))
     a_b_fits = np.empty((len(amplitude_unique), 4))
@@ -230,7 +327,7 @@ def cryoscope(folder, routine, qubit, format):
             detuning_median,
             amplitude_unique,
         )
-        figs[6].add_trace(
+        figs["reconstructed_pulse"].add_trace(
             go.Scatter(
                 visible=False,
                 x=duration_unique,
@@ -246,11 +343,11 @@ def cryoscope(folder, routine, qubit, format):
         a_b_fits[i, :] = np.append(a_fit, b_fit)
         pulses[i, :] = awg_reconstructed_pulse
 
-    figs[6].data[-1].visible = True
+    figs["reconstructed_pulse"].data[-1].visible = True
 
     steps = []
     for i, amp in enumerate(amplitude_unique):
-        figs[6].add_trace(
+        figs["reconstructed_pulse"].add_trace(
             go.Scatter(
                 visible=False,
                 x=duration_unique,
@@ -273,7 +370,7 @@ def cryoscope(folder, routine, qubit, format):
     sliders = [
         dict(steps=steps, active=10, currentvalue={"prefix": "Amplitude (a.u.) = "})
     ]
-    figs[6].update_layout(
+    figs["reconstructed_pulse"].update_layout(
         xaxis_title="Pulse duration (ns)",
         yaxis_title="Amplitude (a.u.)",
         title=f"Reconstructed pulse",
