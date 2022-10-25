@@ -277,6 +277,13 @@ def cryoscope(folder, routine, qubit, format):
         detuning_amplitude, axis=1
     )  # Stable detuning after a long pulse
 
+    coeff_fit, _ = curve_fit(
+        exp,
+        amplitude_unique[amplitude_unique < 0.1],
+        detuning_median[amplitude_unique < 0.1],
+        maxfev=1000000,
+    )
+
     figs["detuning_vs_amplitude"].add_trace(
         go.Scatter(
             x=amplitude_unique,
@@ -284,6 +291,14 @@ def cryoscope(folder, routine, qubit, format):
             name="Median instant detuning unwrapped along duration",
         ),
     )
+    figs["detuning_vs_amplitude"].add_trace(
+        go.Scatter(
+            x=amplitude_unique,
+            y=exp(amplitude_unique, *coeff_fit),
+            name="Fit - Median instant detuning unwrapped along duration",
+        ),
+    )
+
     figs["detuning_vs_amplitude"].add_trace(
         go.Scatter(
             x=amplitude_unique,
@@ -420,3 +435,7 @@ def cryoscope_step_response(t, p, awg_reconstructed_pulse):
     b_fit = p[:2]
     a_fit = p[2:]
     return lfilter(b_fit, a_fit, awg_reconstructed_pulse)
+
+
+def exp(x, a, b, c):
+    return a + np.exp(b * x + c)
