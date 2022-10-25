@@ -21,12 +21,8 @@ def cryoscope(folder, routine, qubit, format):
 
     MX_tag = "MX"
     MY_tag = "MY"
-    MZ_tag = "MZ"
 
     # Extracting Data
-    z = data.get_values("prob", "dimensionless")[
-        data.df["component"] == MZ_tag
-    ].to_numpy()
     x = data.get_values("prob", "dimensionless")[
         data.df["component"] == MX_tag
     ].to_numpy()
@@ -38,8 +34,8 @@ def cryoscope(folder, routine, qubit, format):
 
     amplitude = data.get_values("flux_pulse_amplitude", "dimensionless")
     duration = data.get_values("flux_pulse_duration", "ns")
-    flux_pulse_duration = duration[data.df["component"] == MZ_tag].to_numpy()
-    flux_pulse_amplitude = amplitude[data.df["component"] == MZ_tag].to_numpy()
+    flux_pulse_duration = duration[data.df["component"] == MY_tag].to_numpy()
+    flux_pulse_amplitude = amplitude[data.df["component"] == MY_tag].to_numpy()
     amplitude_unique = flux_pulse_amplitude[
         flux_pulse_duration == flux_pulse_duration[0]
     ]
@@ -111,7 +107,8 @@ def cryoscope(folder, routine, qubit, format):
             x_norm[i, :], y_norm[i, :] = normalize_sincos(
                 x[amplitude == flux_pulse_amplitude[i]],
                 y[amplitude == flux_pulse_amplitude[i]],
-            )  # FIXME: not working yet
+            )
+        # FIXME: not working yet
         else:  # To put on one line
             idx = np.where(flux_pulse_amplitude == amp)
             if amp == flux_pulse_amplitude[-1]:
@@ -189,9 +186,9 @@ def cryoscope(folder, routine, qubit, format):
     # Plot frequency shift (z) for amplitude duration = real pulse
     figs += [go.Figure()]
 
-    # dt = np.diff(duration_unique) * 1e-9
-    # dphi_dt_unwrap = np.diff(phi_unwrap, axis=1) / dt
-    dphi_dt_unwrap = phi_unwrap * 1e9 / duration_unique
+    dt = np.diff(duration_unique) * 1e-9
+    dphi_dt_unwrap = np.diff(phi_unwrap, axis=1) / dt
+    # dphi_dt_unwrap = phi_unwrap * 1e9 / duration_unique
     detuning = dphi_dt_unwrap / (2 * np.pi)
     figs[4].add_trace(
         go.Heatmap(
@@ -229,7 +226,7 @@ def cryoscope(folder, routine, qubit, format):
     a_b_fits = np.empty((len(amplitude_unique), 4))
     for i, amp in enumerate(amplitude_unique):
         awg_reconstructed_pulse = np.interp(
-            detuning[i, :],  # np.append(detuning[i, :], [detuning_median[i]]),
+            np.append(detuning[i, :], [detuning_median[i]]),  # detuning[i, :],
             detuning_median,
             amplitude_unique,
         )
