@@ -98,8 +98,8 @@ def cryoscope(folder, routine, qubit, format):
         ),
     )
     smoothing = False
-    x_norm = np.empty((len(amplitude_unique), len(duration_unique)))
-    y_norm = np.empty((len(amplitude_unique), len(duration_unique)))
+    x_norm = np.ones((len(amplitude_unique), len(duration_unique))) * np.nan
+    y_norm = np.ones((len(amplitude_unique), len(duration_unique))) * np.nan
     for i, amp in enumerate(amplitude_unique):
         if smoothing:
             x_norm[i, :], y_norm[i, :] = normalize_sincos(
@@ -277,11 +277,16 @@ def cryoscope(folder, routine, qubit, format):
         detuning_amplitude, axis=1
     )  # Stable detuning after a long pulse
 
-    coeff_fit, _ = curve_fit(
-        exp,
-        amplitude_unique[amplitude_unique < 0.1],
-        detuning_median[amplitude_unique < 0.1],
-        maxfev=1000000,
+    # coeff_fit, _ = curve_fit(
+    #     exp,
+    #     amplitude_unique[amplitude_unique < 0.1],
+    #     detuning_median[amplitude_unique < 0.1],
+    #     maxfev=1000000,
+    # )
+    coeff_fit = np.polyfit(
+        amplitude_unique[amplitude_unique < 0.05],
+        detuning_median[amplitude_unique < 0.05],
+        2,
     )
 
     figs["detuning_vs_amplitude"].add_trace(
@@ -294,7 +299,9 @@ def cryoscope(folder, routine, qubit, format):
     figs["detuning_vs_amplitude"].add_trace(
         go.Scatter(
             x=amplitude_unique,
-            y=exp(amplitude_unique, *coeff_fit),
+            y=np.polyval(
+                coeff_fit, amplitude_unique
+            ),  # exp(amplitude_unique, *coeff_fit),
             name="Fit - Median instant detuning unwrapped along duration",
         ),
     )
