@@ -100,6 +100,8 @@ def cryoscope(folder, routine, qubit, format):
     smoothing = False
     x_norm = np.ones((len(amplitude_unique), len(duration_unique))) * np.nan
     y_norm = np.ones((len(amplitude_unique), len(duration_unique))) * np.nan
+    # x_norm = np.reshape(x, (len(amplitude_unique), len(duration_unique)))
+    # y_norm = np.reshape(y, (len(amplitude_unique), len(duration_unique)))
     for i, amp in enumerate(amplitude_unique):
         if smoothing:
             x_norm[i, :], y_norm[i, :] = normalize_sincos(
@@ -258,7 +260,7 @@ def cryoscope(folder, routine, qubit, format):
         go.Heatmap(
             x=duration_unique,
             y=amplitude_unique,
-            z=detuning,
+            z=detuning_mean_amplitude,
         ),
     )
     figs["detuning_mean_amplitude"].update_layout(
@@ -272,8 +274,10 @@ def cryoscope(folder, routine, qubit, format):
         "detuning_vs_amplitude"
     ] = go.Figure()  # 5 for the stable detuning frequency as a function of amplitude
 
-    detuning_median = np.median(detuning, axis=1)  # Stable detuning after a long pulse
-    detuning_median_amplitude = np.median(
+    detuning_median = np.nanmedian(
+        detuning, axis=1
+    )  # Stable detuning after a long pulse
+    detuning_median_amplitude = np.nanmedian(
         detuning_amplitude, axis=1
     )  # Stable detuning after a long pulse
 
@@ -309,7 +313,7 @@ def cryoscope(folder, routine, qubit, format):
     figs["detuning_vs_amplitude"].add_trace(
         go.Scatter(
             x=amplitude_unique,
-            y=np.mean(detuning_mean, axis=1),  # detuning_mean[:, -1],
+            y=np.nanmean(detuning_mean, axis=1),  # detuning_mean[:, -1],
             name="Mean detuning of longest pulse unwrapped along duration",
         ),
     )
@@ -324,7 +328,7 @@ def cryoscope(folder, routine, qubit, format):
     figs["detuning_vs_amplitude"].add_trace(
         go.Scatter(
             x=amplitude_unique,
-            y=np.mean(
+            y=np.nanmean(
                 detuning_mean_amplitude, axis=1
             ),  # detuning_mean_amplitude[:, -1],
             name="Mean detuning of longest pulse unwrapped along amplitude",
@@ -337,6 +341,71 @@ def cryoscope(folder, routine, qubit, format):
         title=f"Detuning as a function of amplitude",
     )
 
+    # Testing different ways to reconstruct the pulse
+    figs[
+        "reconstructed_tests"
+    ] = go.Figure()  # 6 for the reconstructed pulse and its fit
+
+    for i, amp in enumerate(amplitude_unique):
+        awg_reconstructed_pulse_tests = {}
+
+        awg_reconstructed_pulse_tests[
+            "FitMedianAmplitude_InstantAmplitude"
+        ] = np.interp(
+            np.append(detuning_amplitude[i, :], [detuning_median_amplitude[i]]),
+            np.polyval(coeff_fit, amplitude_unique),
+            amplitude_unique,
+        )
+        awg_reconstructed_pulse_tests["AvgAmplitude_AvgAmplitude"] = np.interp(
+            detuning_mean_amplitude[i, :],  # detuning[i, :],
+            np.nanmean(detuning_mean_amplitude, axis=1),
+            amplitude_unique,
+        )
+        awg_reconstructed_pulse_tests["AvgAmplitude_InstantAmplitude"] = np.interp(
+            np.append(detuning_amplitude[i, :], [detuning_median[i]]),
+            np.nanmean(detuning_mean_amplitude, axis=1),
+            amplitude_unique,
+        )
+        awg_reconstructed_pulse_tests["MedianDuration_InstantDuration"] = np.interp(
+            np.append(detuning[i, :], [detuning_median[i]]),  # detuning[i, :],
+            detuning_median,
+            amplitude_unique,
+        )
+        for key in awg_reconstructed_pulse_tests:
+            figs["reconstructed_tests"].add_trace(
+                go.Scatter(
+                    visible=False,
+                    x=duration_unique,
+                    y=awg_reconstructed_pulse_tests[key],
+                    name=f"{key} - A = {amp}",
+                ),
+            )
+        pass
+
+    for j in range(1, len(awg_reconstructed_pulse_tests) + 1):
+        figs["reconstructed_tests"].data[-j].visible = True
+
+    steps = []
+    for i, amp in enumerate(amplitude_unique):
+        step = dict(
+            method="restyle",
+            args=["visible", [False] * len(figs["reconstructed_tests"].data)],
+            label=str(amp),
+        )
+        for j in range(len(awg_reconstructed_pulse_tests)):
+            step["args"][1][
+                len(awg_reconstructed_pulse_tests) * i + j
+            ] = True  # Toggle i'th trace to "visible"
+        steps.append(step)
+    sliders = [dict(steps=steps, currentvalue={"prefix": "Amplitude (a.u.) = "})]
+    figs["reconstructed_tests"].update_layout(
+        xaxis_title="Pulse duration (ns)",
+        yaxis_title="Amplitude (a.u.)",
+        title=f"Reconstructed pulse",
+        sliders=sliders,
+    )
+
+    # Comparing the pulse with the fitted filter
     figs[
         "reconstructed_pulse"
     ] = go.Figure()  # 6 for the reconstructed pulse and its fit
@@ -345,8 +414,8 @@ def cryoscope(folder, routine, qubit, format):
     a_b_fits = np.empty((len(amplitude_unique), 4))
     for i, amp in enumerate(amplitude_unique):
         awg_reconstructed_pulse = np.interp(
-            np.append(detuning[i, :], [detuning_median[i]]),  # detuning[i, :],
-            detuning_median,
+            detuning_mean_amplitude[i, :],  # detuning[i, :],
+            np.nanmean(detuning_mean_amplitude, axis=1),
             amplitude_unique,
         )
         figs["reconstructed_pulse"].add_trace(
