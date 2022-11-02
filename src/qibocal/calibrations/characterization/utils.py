@@ -25,9 +25,14 @@ def variable_resolution_scanrange(
     )
 
 
-def get_latest_datafolder():
-    cwd = pathlib.Path()
-    list_dir = sorted(glob.glob(os.path.join(cwd, "*/")), key=os.path.getmtime)
+def get_latest_datafolder(path=None):
+    if path is None:
+        cwd = pathlib.Path()
+    else:
+        cwd = path
+    list_dir = sorted(
+        glob.glob(os.path.join(cwd, "*/")), key=os.path.getmtime, reverse=True
+    )
     for i in range(len(list_dir)):
         if os.path.isdir(cwd / list_dir[-i] / "data"):
             return cwd / list_dir[-i]
