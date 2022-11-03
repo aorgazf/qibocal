@@ -634,3 +634,227 @@ def snz_detuning(folder, routine, qubit, format):
             )
 
     return figs  # [f"c{q_control}_t{q_target}_raw_{m_type}"]
+
+
+def chevron_iswap(folder, routine, qubit, format):
+    data = Dataset.load_data(folder, routine, format, f"data_q{qubit}")
+
+    # Making figure
+    figs = {}
+    combinations = np.unique(
+        np.vstack(
+            (data.df["targetqubit"].to_numpy(), data.df["controlqubit"].to_numpy())
+        ).transpose(),
+        axis=0,
+    )
+    for i in combinations:
+        q_target = i[0]
+        q_control = i[1]
+
+        # Extracting Data
+        QubitTarget = data.get_values("prob", "dimensionless")[
+            (data.df["controlqubit"] == q_control)
+            & (data.df["targetqubit"] == q_target)
+            & (data.df["result_qubit"] == q_target)
+        ].to_numpy()
+
+        amplitude = data.get_values("flux_pulse_amplitude", "dimensionless")
+        duration = data.get_values("flux_pulse_duration", "ns")
+        flux_pulse_duration = duration[
+            (data.df["controlqubit"] == q_control)
+            & (data.df["targetqubit"] == q_target)
+            & (data.df["result_qubit"] == q_target)
+        ].to_numpy()
+        flux_pulse_amplitude = amplitude[
+            (data.df["controlqubit"] == q_control)
+            & (data.df["targetqubit"] == q_target)
+            & (data.df["result_qubit"] == q_target)
+        ].to_numpy()
+
+        amplitude_unique = flux_pulse_amplitude[
+            flux_pulse_duration == flux_pulse_duration[0]
+        ]
+        duration_unique = flux_pulse_duration[
+            flux_pulse_amplitude == flux_pulse_amplitude[0]
+        ]
+
+        figs[f"c{q_control}_t{q_target}_raw"] = make_subplots(
+            rows=1,
+            cols=1,
+            horizontal_spacing=0.1,
+            vertical_spacing=0.2,
+            subplot_titles=(
+                f"Qubit Target {q_target}",
+                # f"Qubit Control {q_control}",
+            ),
+        )
+
+        figs[f"c{q_control}_t{q_target}_raw"].add_trace(
+            go.Heatmap(
+                x=flux_pulse_duration,
+                y=flux_pulse_amplitude,
+                z=QubitTarget,
+                name="QubitTarget",
+                colorbar=dict(len=0.46, y=0.75),
+            ),
+            row=1,
+            col=1,
+        )
+
+        figs[f"c{q_control}_t{q_target}_raw"].update_layout(
+            xaxis_title="Pulse duration (s)",
+            yaxis_title="Amplitude (a.u.)",
+            # xaxis2_title="Pulse detuning (deg)",
+            # yaxis2_title="Amplitude (a.u.)",
+            title=f"Raw data",
+        )
+
+        # # Normalizing between -1 and 1, and getting simple phase
+        # QubitTarget_matrix = (
+        #     np.ones((len(amplitude_unique), len(duration_unique))) * np.nan
+        # )
+        # QubitTarget_OFF_matrix = (
+        #     np.ones((len(amplitude_unique), len(duration_unique))) * np.nan
+        # )
+
+        # for i, t in enumerate(duration_unique):
+        #     n = int(np.where(flux_pulse_duration == duration_unique[-1])[0][-1]) + 1
+        #     idx = np.where(flux_pulse_duration[:n] == t)
+        #     QubitTarget_OFF_matrix[
+        #         : n // len(duration_unique), i
+        #     ] = QubitTarget_OFF[idx]
+        #     QubitTarget_matrix[: n // len(duration_unique), i] = QubitTarget[
+        #         idx
+        #     ]
+
+        # figs[f"c{q_control}_t{q_target}_norm"] = make_subplots(
+        #     rows=1,
+        #     cols=2,
+        #     horizontal_spacing=0.1,
+        #     vertical_spacing=0.2,
+        #     subplot_titles=(
+        #         f"Qubit Target {q_target} ON",
+        #         f"Qubit Target {q_target} OFF",
+        #     ),
+        # )
+
+        # QubitTarget_norm = QubitTarget_matrix - 0.5
+        # QubitTarget_norm = QubitTarget_norm / np.vstack(
+        #     np.max(np.abs(QubitTarget_norm), axis=1)
+        # )
+        # QubitTarget_OFF_norm = QubitTarget_OFF_matrix - 0.5
+        # QubitTarget_OFF_norm = QubitTarget_OFF_norm / np.vstack(
+        #     np.max(np.abs(QubitTarget_OFF_norm), axis=1)
+        # )
+
+        # figs[f"c{q_control}_t{q_target}_norm"].add_trace(
+        #     go.Heatmap(
+        #         x=duration_unique,
+        #         y=amplitude_unique,
+        #         z=QubitTarget_OFF_norm,
+        #         colorbar=dict(len=0.46, y=0.75),
+        #         name="QubitControl OFF",
+        #     ),
+        #     row=1,
+        #     col=1,
+        # )
+
+        # figs[f"c{q_control}_t{q_target}_norm"].add_trace(
+        #     go.Heatmap(
+        #         x=duration_unique,
+        #         y=amplitude_unique,
+        #         z=QubitTarget_norm,
+        #         colorbar=dict(len=0.46, y=0.25),
+        #         name="QubitControl ON",
+        #     ),
+        #     row=1,
+        #     col=2,
+        # )
+
+        # figs[f"c{q_control}_t{q_target}_norm"].update_layout(
+        #     uirevision="0",
+        #     yaxis_title="Amplitude (a.u.)",
+        #     xaxis_title="t_p",
+        #     title=f"Control {q_control}, Target {q_target}",
+        # )
+
+        # # Calculating the phase
+        # figs[f"c{q_control}_t{q_target}_phase"] = go.Figure()
+        # figs[f"c{q_control}_t{q_target}_phase"].add_trace(
+        #     go.Heatmap(
+        #         x=duration_unique,
+        #         y=amplitude_unique,
+        #         z=np.rad2deg(
+        #             np.arccos(QubitTarget_norm) - np.arccos(QubitTarget_OFF_norm)
+        #         ),
+        #         name="Phase arcos(ON) - arcos(OFF)",
+        #     ),
+        # )
+        # figs[f"c{q_control}_t{q_target}_phase"].update_layout(
+        #     uirevision="0",
+        #     yaxis_title="Amplitude (a.u.)",
+        #     xaxis_title="t_p",
+        #     title=f"Control {q_control}, Target {q_target}",
+        # )
+
+        # # Calculating the phase from complex number
+        # figs[f"c{q_control}_t{q_target}_phase_complex"] = go.Figure()
+        # figs[f"c{q_control}_t{q_target}_phase_complex"].add_trace(
+        #     go.Heatmap(
+        #         x=duration_unique,
+        #         y=amplitude_unique,
+        #         z=np.rad2deg(
+        #             np.angle(QubitTarget_matrix + 1j * QubitTarget_OFF_matrix)
+        #         )
+        #         % 180,
+        #         name="Phase Complex ON + 1j * OFF",
+        #     ),
+        # )
+        # figs[f"c{q_control}_t{q_target}_phase_complex"].update_layout(
+        #     uirevision="0",
+        #     yaxis_title="Amplitude (a.u.)",
+        #     xaxis_title="t_p",
+        #     title=f"Control {q_control}, Target {q_target}",
+        # )
+
+        # # Calculating the differance between ON and OFF
+        # figs[f"c{q_control}_t{q_target}_diff"] = go.Figure()
+        # figs[f"c{q_control}_t{q_target}_diff"].add_trace(
+        #     go.Heatmap(
+        #         x=flux_pulse_duration,  # duration_unique,
+        #         y=flux_pulse_amplitude,  # amplitude_unique,
+        #         z=QubitTarget_OFF
+        #         - QubitTarget,  # QubitTarget_matrix - QubitTarget_OFF_matrix,
+        #         name="Diff",
+        #     ),
+        # )
+        # figs[f"c{q_control}_t{q_target}_diff"].update_layout(
+        #     uirevision="0",
+        #     yaxis_title="Amplitude (a.u.)",
+        #     xaxis_title="t_p",
+        #     title=f"Control {q_control}, Target {q_target}",
+        # )
+
+        # # Mean complex phase
+        # figs[f"c{q_control}_t{q_target}_phase_complex_mean"] = go.Figure()
+        # figs[f"c{q_control}_t{q_target}_phase_complex_mean"].add_trace(
+        #     go.Scatter(
+        #         x=amplitude_unique,
+        #         y=np.nanmean(
+        #             np.rad2deg(
+        #                 np.arccos(QubitTarget_norm)
+        #                 - np.arccos(QubitTarget_OFF_norm)
+        #             ),
+        #             axis=1,
+        #         ),
+        #         name="Phase Complex ON + 1j * OFF",
+        #     ),
+        # )
+        # figs[f"c{q_control}_t{q_target}_phase_complex_mean"].update_layout(
+        #     uirevision="0",
+        #     yaxis_title="mean phi2Q (deg)",
+        #     xaxis_title="Amplitude (a.u.)",
+        #     title=f"Control {q_control}, Target {q_target}",
+        # )
+
+    return figs[f"c{q_control}_t{q_target}_raw"]

@@ -288,8 +288,8 @@ def cryoscope(folder, routine, qubit, format):
     #     maxfev=1000000,
     # )
     coeff_fit = np.polyfit(
-        amplitude_unique[amplitude_unique < 0.05],
-        detuning_median[amplitude_unique < 0.05],
+        amplitude_unique,  # [amplitude_unique < 0.05],
+        detuning_median,  # [amplitude_unique < 0.05],
         2,
     )
 
