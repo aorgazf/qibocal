@@ -1,6 +1,6 @@
 platform: tii5q
 
-qubits: [2]
+qubits: [4]
 
 format: csv
 
@@ -172,8 +172,8 @@ actions:
 
   cryoscope:
     flux_pulse_duration_start: 4
-    flux_pulse_duration_end: 400
-    flux_pulse_duration_step: 1
-    flux_pulse_amplitude_start: 0.2
-    flux_pulse_amplitude_end: 0.2
+    flux_pulse_duration_end: 1000
+    flux_pulse_duration_step: 4
+    flux_pulse_amplitude_start: 0
+    flux_pulse_amplitude_end: 1
     flux_pulse_amplitude_step: 0.1

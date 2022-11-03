@@ -5,12 +5,22 @@ from qibolab.pulses import FluxPulse, Pulse, PulseSequence, PulseType, Rectangul
 
 from qibocal import plots
 from qibocal.calibrations.characterization.utils import iq_to_prob
-from qibocal.data import Dataset
+from qibocal.data import DataUnits
 from qibocal.decorators import plot
 
 
-@plot("cryoscope", plots.cryoscope)
-# @plot("cryoscope slider", plots.cryoscope_raw_slider)
+@plot("cryoscope_raw", plots.cryoscope_raw)
+@plot("cryoscope_raw_heatmap", plots.cryoscope_raw_heatmap)
+@plot("cryoscope_norm", plots.cryoscope_norm)
+@plot("cryoscope_norm_heatmap", plots.cryoscope_norm_heatmap)
+@plot("cryoscope_norm_fft", plots.cryoscope_norm_fft)
+#@plot("cryoscope_phase_duration", plots.cryoscope_phase_duration)
+
+#@plot("cryoscope_phase_duration_heatmap", plots.cryoscope_phase_duration_heatmap)
+#@plot("cryoscope_phase_amplitude_heatmap", plots.cryoscope_phase_amplitude_heatmap)
+
+#@plot("cryoscope_detunning", plots.cryoscope_detunning)
+#@plot("cryoscope slider", plots.cryoscope_raw_slider)
 def cryoscope(
     platform: AbstractPlatform,
     qubit: int,
@@ -44,7 +54,7 @@ def cryoscope(
     )
     # apply a detuning flux pulse
     flux_pulse = FluxPulse(
-        start=initial_RY90_pulse.se_finish + 8,
+        start=initial_RY90_pulse.se_finish,
         duration=flux_pulse_duration_start,  # sweep to produce oscillations [300 to 400ns] in steps od 1ns? or 4?
         amplitude=flux_pulse_amplitude_start,  # fix for each run
         shape=Rectangular(),  # should be rectangular, but it gets distorted
@@ -55,12 +65,12 @@ def cryoscope(
 
     # rotate around the X asis Rx(-pi/2) to meassure Y component
     RX90_pulse = platform.create_RX90_pulse(
-        qubit, start=flux_pulse.se_finish + 8, relative_phase=np.pi
+        qubit, start=flux_pulse.se_finish, relative_phase=np.pi
     )
 
     # rotate around the Y asis Ry(pi/2) to meassure X component
     RY90_pulse = platform.create_RX90_pulse(
-        qubit, start=flux_pulse.se_finish + 8, relative_phase=np.pi / 2
+        qubit, start=flux_pulse.se_finish, relative_phase=np.pi / 2
     )
 
     # add ro pulse at the end of each sequence
@@ -69,13 +79,11 @@ def cryoscope(
     # build the sequences
     MX_seq = initial_RY90_pulse + flux_pulse + RY90_pulse + MZ_ro_pulse
     MY_seq = initial_RY90_pulse + flux_pulse + RX90_pulse + MZ_ro_pulse
-    MZ_seq = initial_RY90_pulse + flux_pulse + MZ_ro_pulse
 
     MX_tag = "MX"
     MY_tag = "MY"
-    MZ_tag = "MZ"
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_duration": "ns",
@@ -158,21 +166,6 @@ def cryoscope(
             }
             data.add(results)
 
-            MZ_results = platform.execute_pulse_sequence(MZ_seq)[MZ_ro_pulse.serial]
-            results = {
-                "MSR[V]": MZ_results[0],
-                "i[V]": MZ_results[2],
-                "q[V]": MZ_results[3],
-                "phase[rad]": MZ_results[1],
-                "prob[dimensionless]": iq_to_prob(
-                    MZ_results[2], MZ_results[3], mean_gnd, mean_exc
-                ),
-                "component": MZ_tag,
-                "flux_pulse_duration[ns]": duration,
-                "flux_pulse_amplitude[dimensionless]": amplitude,
-            }
-            data.add(results)
-
             count += 1
         yield data
 
@@ -232,7 +225,7 @@ def cryoscope_amplitude(
     MY_tag = "MY"
     MZ_tag = "MZ"
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_duration": "ns",
