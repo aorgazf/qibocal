@@ -20,7 +20,6 @@ from qibocal.decorators import plot
 @plot("cryoscope_phase_amplitude_unwrapped_heatmap", plots.cryoscope_phase_amplitude_unwrapped_heatmap)
 @plot("cryoscope_fft_phase_unwrapped", plots.cryoscope_fft_phase_unwrapped)
 @plot("cryoscope_detuning_time", plots.cryoscope_detuning_time)
-
 # @plot("cryoscope_detuning_amplitude", plots.cryoscope_detuning_amplitude)
 def cryoscope(
     platform: AbstractPlatform,
@@ -33,13 +32,27 @@ def cryoscope(
     flux_pulse_amplitude_step,
     points=10,
 ):
-    # 1) from state |0> apply Ry(pi/2) to state |+>,
-    # 2) apply a flux pulse of variable duration,
-    # 3) measure in the X and Y axis
-    #   MX = Ry(pi/2) - (flux)(t) - Ry(pi/2)  - MZ
-    #   MY = Ry(pi/2) - (flux)(t) - Rx(-pi/2) - MZ
-    #   MZ = Ry(pi/2) - (flux)(t) - wait      - MZ
-    # The flux pulse detunes the qubit and results in a rotation around the Z axis = atan(MY/MX)
+
+    """Cryoscope calibration routine (arxiv ref: XXXXX)
+    This characterization method allows the user to calibrate CPhase gates. Given a qubit,
+    the method implements the following sequences for a range of different flux pulse durations and amplitudes:
+           MX = Ry(pi/2) - (flux)(t) - Ry(pi/2)  - MZ
+           MY = Ry(pi/2) - (flux)(t) - Rx(-pi/2) - MZ
+    
+    The flux pulse detunes the qubit and results in a rotation around the Z axis = atan(MY/MX)
+    From the data analysis performed in the batch of functions for cryoscope analysis (see decorators)
+    we parametrize the flux pulse used to implement CPhase gates in a given qubit.
+
+    Args:
+        platfform (AbstrcatPlatform): Qibolab object that allows the user to communicate with the experimental setup (QPU)
+        flux_pulse_duration_start (int): initial duration of the flux pulse range values
+        flux_pulse_duration_step (int): incremental duration of the flux pulse range values
+        flux_pulse_duration_start (int): end duration of the flux pulse range values
+        flux_pulse_amplitude_start (float): initial amplitude of the flux pulse range values (0 <= flux_pulse_amplitude_start <= 1)
+        flux_pulse_amplitude_end (float): incremental amplitude of the flux pulse range values
+        flux_pulse_amplitude_step (float): end amplitude of the flux pulse range values (0 <= flux_pulse_amplitude_start <= 1)
+        points (int): Number of points obtained to executed the save method of the results in a file
+    """
 
     platform.reload_settings()
     mean_gnd = complex(
