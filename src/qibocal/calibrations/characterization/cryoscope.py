@@ -10,17 +10,18 @@ from qibocal.decorators import plot
 
 
 @plot("cryoscope_raw", plots.cryoscope_raw)
-@plot("cryoscope_raw_heatmap", plots.cryoscope_raw_heatmap)
 @plot("cryoscope_norm", plots.cryoscope_norm)
 @plot("cryoscope_norm_heatmap", plots.cryoscope_norm_heatmap)
-@plot("cryoscope_norm_fft", plots.cryoscope_norm_fft)
-#@plot("cryoscope_phase_duration", plots.cryoscope_phase_duration)
+@plot("cryoscope_fft", plots.cryoscope_fft)
+@plot("cryoscope_phase", plots.cryoscope_phase)
+@plot("cryoscope_phase_heatmap", plots.cryoscope_phase_heatmap)
+@plot("cryoscope_phase_unwrapped", plots.cryoscope_phase_unwrapped)
+@plot("cryoscope_phase_unwrapped_heatmap", plots.cryoscope_phase_unwrapped_heatmap)
+@plot("cryoscope_phase_amplitude_unwrapped_heatmap", plots.cryoscope_phase_amplitude_unwrapped_heatmap)
+@plot("cryoscope_fft_phase_unwrapped", plots.cryoscope_fft_phase_unwrapped)
+@plot("cryoscope_detuning_time", plots.cryoscope_detuning_time)
 
-#@plot("cryoscope_phase_duration_heatmap", plots.cryoscope_phase_duration_heatmap)
-#@plot("cryoscope_phase_amplitude_heatmap", plots.cryoscope_phase_amplitude_heatmap)
-
-#@plot("cryoscope_detunning", plots.cryoscope_detunning)
-#@plot("cryoscope slider", plots.cryoscope_raw_slider)
+# @plot("cryoscope_detuning_amplitude", plots.cryoscope_detuning_amplitude)
 def cryoscope(
     platform: AbstractPlatform,
     qubit: int,
