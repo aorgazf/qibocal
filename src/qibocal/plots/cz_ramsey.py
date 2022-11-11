@@ -514,13 +514,26 @@ def snz_detuning(folder, routine, qubit, format):
                 ),
             )
 
-            QubitTarget_ON_norm = QubitTarget_ON_matrix - 0.5
-            QubitTarget_ON_norm = QubitTarget_ON_norm / np.vstack(
-                np.max(np.abs(QubitTarget_ON_norm), axis=1)
+            QubitTarget_ON_norm = QubitTarget_ON_matrix - np.vstack(
+                (
+                    np.max(QubitTarget_ON_matrix, axis=1)
+                    + np.min(QubitTarget_ON_matrix, axis=1)
+                )
+                / 2
             )
-            QubitTarget_OFF_norm = QubitTarget_OFF_matrix - 0.5
+            QubitTarget_ON_norm = QubitTarget_ON_norm / np.vstack(
+                np.max(QubitTarget_ON_norm, axis=1)
+            )
+
+            QubitTarget_OFF_norm = QubitTarget_OFF_matrix - np.vstack(
+                (
+                    np.max(QubitTarget_OFF_matrix, axis=1)
+                    + np.min(QubitTarget_OFF_matrix, axis=1)
+                )
+                / 2
+            )
             QubitTarget_OFF_norm = QubitTarget_OFF_norm / np.vstack(
-                np.max(np.abs(QubitTarget_OFF_norm), axis=1)
+                np.max(QubitTarget_OFF_norm, axis=1)
             )
 
             figs[f"c{q_control}_t{q_target}_norm_{m_type}"].add_trace(
@@ -629,6 +642,52 @@ def snz_detuning(folder, routine, qubit, format):
             figs[f"c{q_control}_t{q_target}_phase_complex_mean_{m_type}"].update_layout(
                 uirevision="0",
                 yaxis_title="mean phi2Q (deg)",
+                xaxis_title="Amplitude (a.u.)",
+                title=f"Control {q_control}, Target {q_target}",
+            )
+
+            # FFT and plot phase
+            fft_ON = np.fft.fft(QubitTarget_ON_norm, axis=1)
+            phase_ON = np.angle(fft_ON[np.argmax(fft_ON, axis=1)])
+            fft_OFF = np.fft.fft(QubitTarget_OFF_norm, axis=1)
+            phase_OFF = np.angle(fft_OFF[np.argmax(fft_OFF, axis=1)])
+
+            def f(x, phi):
+                return np.sin(2 * np.pi * x / 360 + phi)
+
+            popt_ON = []
+            popt_OFF = []
+            for i, amp in enumerate(amplitude_unique):
+                popt, _ = curve_fit(
+                    f, detuning_unique, QubitTarget_ON_norm[i, :], p0=[0]
+                )
+                import matplotlib.pyplot as plt
+
+                plt.clf()
+                plt.plot(detuning_unique, QubitTarget_OFF_norm[i, :])
+                plt.plot(detuning_unique, f(detuning_unique, *popt))
+                plt.savefig("fig.png")
+                popt_ON += [popt]
+                popt, _ = curve_fit(
+                    f, detuning_unique, QubitTarget_OFF_norm[i, :], p0=[0]
+                )
+                plt.clf()
+                plt.plot(detuning_unique, QubitTarget_OFF_norm[i, :])
+                plt.plot(detuning_unique, f(detuning_unique, *popt))
+                plt.savefig("fig.png")
+                popt_OFF += [popt]
+
+            figs[f"c{q_control}_t{q_target}_phase_fft_{m_type}"] = go.Figure()
+            figs[f"c{q_control}_t{q_target}_phase_fft_{m_type}"].add_trace(
+                go.Scatter(
+                    x=amplitude_unique,
+                    y=np.rad2deg(phase_ON - phase_OFF),
+                    name="Phase FFT",
+                ),
+            )
+            figs[f"c{q_control}_t{q_target}_phase_fft_{m_type}"].update_layout(
+                uirevision="0",
+                yaxis_title="phi2Q (deg)",
                 xaxis_title="Amplitude (a.u.)",
                 title=f"Control {q_control}, Target {q_target}",
             )
@@ -857,4 +916,4 @@ def chevron_iswap(folder, routine, qubit, format):
         #     title=f"Control {q_control}, Target {q_target}",
         # )
 
-    return figs[f"c{q_control}_t{q_target}_raw"]
+    return figs  # [f"c{q_control}_t{q_target}_raw"]

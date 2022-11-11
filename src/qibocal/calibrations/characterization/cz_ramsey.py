@@ -292,7 +292,7 @@ def cz_virtualdetuning(
         initial_RY90_pulse = platform.create_RX90_pulse(
             q_target, start=0, relative_phase=np.pi / 2
         )
-        tp = 4
+        tp = 20
         flux_pulse = FluxPulse(
             start=initial_RX90_pulse.se_finish + 8,
             duration=2
@@ -453,7 +453,7 @@ def cz_virtualdetuning(
             yield data
 
 
-# @plot("snz", plots.snz)
+@plot("snz", plots.chevron_iswap)
 def chevron_iswap(
     platform: AbstractPlatform,
     qubit: int,
@@ -512,13 +512,10 @@ def chevron_iswap(
 
         flux_pulse = FluxPulse(
             start=initial_RX_pulse.se_finish + 8,
-            duration=2 * flux_pulse_duration_start
-            + 4,  # sweep to produce oscillations [300 to 400ns] in steps od 1ns? or 4?
+            duration=flux_pulse_duration_start,  # 2 * flux_pulse_duration_start+ 4,  # sweep to produce oscillations [300 to 400ns] in steps od 1ns? or 4?
             amplitude=flux_pulse_amplitude_start,  # fix for each run
             relative_phase=0,
-            shape=SNZ(
-                flux_pulse_duration_start
-            ),  # should be rectangular, but it gets distorted
+            shape=Rectangular(),  # SNZ(flux_pulse_duration_start),  # should be rectangular, but it gets distorted
             channel=platform.qubit_channel_map[q_target][2],
             qubit=q_target,
         )
@@ -580,8 +577,8 @@ def chevron_iswap(
                 if count % points == 0:
                     yield data
                 flux_pulse.amplitude = amplitude
-                flux_pulse.duration = 2 * duration + 4
-                flux_pulse.shape = SNZ(duration)
+                flux_pulse.duration = duration  # 2 * duration + 4
+                # flux_pulse.shape = SNZ(duration)
 
                 while True:
                     try:
