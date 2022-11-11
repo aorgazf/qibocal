@@ -5,7 +5,7 @@ from qibolab.pulses import FluxPulse, Pulse, PulseSequence, PulseType, Rectangul
 
 from qibocal import plots
 from qibocal.calibrations.characterization.utils import iq_to_prob
-from qibocal.data import DataUnits
+from qibocal.data import Dataset
 from qibocal.decorators import plot
 
 
@@ -20,7 +20,6 @@ from qibocal.decorators import plot
 @plot("cryoscope_phase_amplitude_unwrapped_heatmap", plots.cryoscope_phase_amplitude_unwrapped_heatmap)
 @plot("cryoscope_fft_phase_unwrapped", plots.cryoscope_fft_phase_unwrapped)
 @plot("cryoscope_detuning_time", plots.cryoscope_detuning_time)
-# @plot("cryoscope_detuning_amplitude", plots.cryoscope_detuning_amplitude)
 def cryoscope(
     platform: AbstractPlatform,
     qubit: int,
@@ -32,27 +31,12 @@ def cryoscope(
     flux_pulse_amplitude_step,
     points=10,
 ):
-
-    """Cryoscope calibration routine (arxiv ref: XXXXX)
-    This characterization method allows the user to calibrate CPhase gates. Given a qubit,
-    the method implements the following sequences for a range of different flux pulse durations and amplitudes:
-           MX = Ry(pi/2) - (flux)(t) - Ry(pi/2)  - MZ
-           MY = Ry(pi/2) - (flux)(t) - Rx(-pi/2) - MZ
-    
-    The flux pulse detunes the qubit and results in a rotation around the Z axis = atan(MY/MX)
-    From the data analysis performed in the batch of functions for cryoscope analysis (see decorators)
-    we parametrize the flux pulse used to implement CPhase gates in a given qubit.
-
-    Args:
-        platfform (AbstrcatPlatform): Qibolab object that allows the user to communicate with the experimental setup (QPU)
-        flux_pulse_duration_start (int): initial duration of the flux pulse range values
-        flux_pulse_duration_step (int): incremental duration of the flux pulse range values
-        flux_pulse_duration_start (int): end duration of the flux pulse range values
-        flux_pulse_amplitude_start (float): initial amplitude of the flux pulse range values (0 <= flux_pulse_amplitude_start <= 1)
-        flux_pulse_amplitude_end (float): incremental amplitude of the flux pulse range values
-        flux_pulse_amplitude_step (float): end amplitude of the flux pulse range values (0 <= flux_pulse_amplitude_start <= 1)
-        points (int): Number of points obtained to executed the save method of the results in a file
-    """
+    # 1) from state |0> apply Ry(pi/2) to state |+>,
+    # 2) apply a flux pulse of variable duration,
+    # 3) measure in the X and Y axis
+    #   MX = Ry(pi/2) - (flux)(t) - Ry(pi/2)  - MZ
+    #   MY = Ry(pi/2) - (flux)(t) - Rx(-pi/2) - MZ
+    # The flux pulse detunes the qubit and results in a rotation around the Z axis = atan(MY/MX)
 
     platform.reload_settings()
     mean_gnd = complex(
@@ -68,7 +52,7 @@ def cryoscope(
     )
     # apply a detuning flux pulse
     flux_pulse = FluxPulse(
-        start=initial_RY90_pulse.se_finish,
+        start=initial_RY90_pulse.se_finish + 8,
         duration=flux_pulse_duration_start,  # sweep to produce oscillations [300 to 400ns] in steps od 1ns? or 4?
         amplitude=flux_pulse_amplitude_start,  # fix for each run
         shape=Rectangular(),  # should be rectangular, but it gets distorted
@@ -79,12 +63,12 @@ def cryoscope(
 
     # rotate around the X asis Rx(-pi/2) to meassure Y component
     RX90_pulse = platform.create_RX90_pulse(
-        qubit, start=flux_pulse.se_finish, relative_phase=np.pi
+        qubit, start=flux_pulse.se_finish + 8, relative_phase=np.pi
     )
 
     # rotate around the Y asis Ry(pi/2) to meassure X component
     RY90_pulse = platform.create_RX90_pulse(
-        qubit, start=flux_pulse.se_finish, relative_phase=np.pi / 2
+        qubit, start=flux_pulse.se_finish + 8, relative_phase=np.pi / 2
     )
 
     # add ro pulse at the end of each sequence
@@ -97,7 +81,7 @@ def cryoscope(
     MX_tag = "MX"
     MY_tag = "MY"
 
-    data = DataUnits(
+    data = Dataset(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_duration": "ns",
@@ -239,7 +223,7 @@ def cryoscope_amplitude(
     MY_tag = "MY"
     MZ_tag = "MZ"
 
-    data = DataUnits(
+    data = Dataset(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_duration": "ns",

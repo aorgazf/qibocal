@@ -729,6 +729,9 @@ def cryoscope_detuning_time(folder, routine, qubit, format):
         re = data.get_values("prob", "dimensionless")[data.df["flux_pulse_amplitude"] == amp][data.df["component"] == MX_tag].to_numpy()
         im = data.get_values("prob", "dimensionless")[data.df["flux_pulse_amplitude"] == amp][data.df["component"] == MY_tag].to_numpy()
         
+        #re_norm = 1 - 2 * re_norm
+        #im_norm = 1 - 2 * im_norm
+        
         re_norm = re - 0.5
         im_norm = im - 0.5
         re_norm = np.array(re_norm / max(abs(re_norm)))
