@@ -172,9 +172,9 @@ actions:
 
   cryoscope:
     flux_pulse_duration_start: 4
-    flux_pulse_duration_end: 100
+    flux_pulse_duration_end: 1000
     flux_pulse_duration_step: 4
     flux_pulse_amplitude_start: 0
-    flux_pulse_amplitude_end: 0.1
+    flux_pulse_amplitude_end: 0.5
     flux_pulse_amplitude_step: 0.001
     points: 1
