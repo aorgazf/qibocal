@@ -646,42 +646,41 @@ def snz_detuning(folder, routine, qubit, format):
                 title=f"Control {q_control}, Target {q_target}",
             )
 
-            # FFT and plot phase
-            fft_ON = np.fft.fft(QubitTarget_ON_norm, axis=1)
-            phase_ON = np.angle(fft_ON[np.argmax(fft_ON, axis=1)])
-            fft_OFF = np.fft.fft(QubitTarget_OFF_norm, axis=1)
-            phase_OFF = np.angle(fft_OFF[np.argmax(fft_OFF, axis=1)])
+            # Fit and plot phase
 
             def f(x, phi):
                 return np.sin(2 * np.pi * x / 360 + phi)
 
-            popt_ON = []
-            popt_OFF = []
+            popt_ON = np.array([])
+            popt_OFF = np.array([])
             for i, amp in enumerate(amplitude_unique):
-                popt, _ = curve_fit(
-                    f, detuning_unique, QubitTarget_ON_norm[i, :], p0=[0]
-                )
-                import matplotlib.pyplot as plt
-
-                plt.clf()
-                plt.plot(detuning_unique, QubitTarget_OFF_norm[i, :])
-                plt.plot(detuning_unique, f(detuning_unique, *popt))
-                plt.savefig("fig.png")
-                popt_ON += [popt]
-                popt, _ = curve_fit(
-                    f, detuning_unique, QubitTarget_OFF_norm[i, :], p0=[0]
-                )
-                plt.clf()
-                plt.plot(detuning_unique, QubitTarget_OFF_norm[i, :])
-                plt.plot(detuning_unique, f(detuning_unique, *popt))
-                plt.savefig("fig.png")
-                popt_OFF += [popt]
-
+                if not np.isnan(QubitTarget_OFF_norm[i, :]).any():
+                    popt, _ = curve_fit(
+                        f,
+                        detuning_unique,
+                        QubitTarget_ON_norm[i, :],
+                        p0=[0],
+                        maxfev=1000,
+                    )
+                    popt_ON = np.concatenate((popt_ON, popt))
+                    popt, _ = curve_fit(
+                        f,
+                        detuning_unique,
+                        QubitTarget_OFF_norm[i, :],
+                        p0=[0],
+                        maxfev=1000,
+                    )
+                    popt_OFF = np.concatenate((popt_OFF, popt))
+                else:
+                    popt_ON = np.concatenate((popt_ON, [np.nan]))
+                    popt_OFF = np.concatenate((popt_OFF, [np.nan]))
+            angle_ON = np.rad2deg(popt_ON) % 360
+            angle_OFF = np.rad2deg(popt_OFF) % 360
             figs[f"c{q_control}_t{q_target}_phase_fft_{m_type}"] = go.Figure()
             figs[f"c{q_control}_t{q_target}_phase_fft_{m_type}"].add_trace(
                 go.Scatter(
                     x=amplitude_unique,
-                    y=np.rad2deg(phase_ON - phase_OFF),
+                    y=(angle_OFF - angle_ON + 180) % 360 - 180,
                     name="Phase FFT",
                 ),
             )
