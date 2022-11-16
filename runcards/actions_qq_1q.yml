@@ -34,6 +34,13 @@ actions:
   #   software_averages: 1
   #   points: 10
 
+  measure_f12:
+    offset_start: 0
+    offset_end: 400.e+6
+    offset_step: 1.e+6
+    software_averages: 1
+    points: 1
+
   # qubit_attenuation:
   #   freq_start: -100.e+6
   #   freq_end: +100.e+6
@@ -42,12 +49,12 @@ actions:
   #   software_averages: 1
   #   points: 1
 
-  rabi_pulse_amplitude:
-    pulse_amplitude_start: 0 # 0<=a<=1
-    pulse_amplitude_end: 1
-    pulse_amplitude_step: 0.02
-    software_averages: 1
-    points: 10
+  # rabi_pulse_amplitude:
+  #   pulse_amplitude_start: 0 # 0<=a<=1
+  #   pulse_amplitude_end: 1
+  #   pulse_amplitude_step: 0.02
+  #   software_averages: 1
+  #   points: 10
 
   # rabi_pulse_gain:
   #   pulse_gain_start: 0 # -1.0<=g<=1.0

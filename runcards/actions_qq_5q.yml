@@ -60,6 +60,13 @@ actions:
   #   software_averages: 1
   #   points: 10
 
+  measure_f12:
+    offset_start: 0
+    offset_end: 400.e+6
+    offset_step: 1.e+6
+    software_averages: 1
+    points: 1
+
   # qubit_spectroscopy_flux:
   #   freq_width: 50_000_000
   #   freq_step: 200_000
@@ -70,12 +77,12 @@ actions:
   #   software_averages: 2
   #   points: 10
 
-  rabi_pulse_length:
-    pulse_duration_start: 4 # minimum 4ns
-    pulse_duration_end: 200
-    pulse_duration_step: 4
-    software_averages: 1
-    points: 10
+  # rabi_pulse_length:
+  #   pulse_duration_start: 4 # minimum 4ns
+  #   pulse_duration_end: 200
+  #   pulse_duration_step: 4
+  #   software_averages: 1
+  #   points: 10
 
   # rabi_pulse_gain:
   #   pulse_gain_start: 0 # -1.0<=g<=1.0
