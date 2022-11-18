@@ -1,6 +1,6 @@
 platform: tii1q
 
-qubits: [0]
+qubits: [1]
 
 format: csv
 
@@ -25,29 +25,32 @@ actions:
   #   points: 10
 
   # qubit_spectroscopy:
-  #   fast_start: -5_000_000
-  #   fast_end: 5_000_000
-  #   fast_step: 200_000
+  #   fast_start: -20_000_000
+  #   fast_end: 20_000_000
+  #   fast_step: 1_000_000
   #   precision_start: -500_000
   #   precision_end: 500_000
-  #   precision_step: 20_000
+  #   precision_step: 100_000
   #   software_averages: 1
   #   points: 10
 
-  measure_f12:
-    offset_start: 0
-    offset_end: 400.e+6
-    offset_step: 1.e+6
+  rabi_ef:
+    pulse_offset_frequency_start: 220.e+6 # minimum 4ns
+    pulse_offset_frequency_end: 500.e+6
+    pulse_offset_frequency_step: 10.e+6
+    pulse_amplitude_start: 0 # -1.0<=g<=1.0
+    pulse_amplitude_end: 1
+    pulse_amplitude_step: 0.05
     software_averages: 1
     points: 1
 
-  # qubit_attenuation:
-  #   freq_start: -100.e+6
-  #   freq_end: +100.e+6
-  #   freq_step: 2.e+6
-  #   attenuation_list: range(38,60,2)
-  #   software_averages: 1
-  #   points: 1
+  qubit_attenuation:
+    freq_start: -400.e+6
+    freq_end: +50.e+6
+    freq_step: 2.e+6
+    attenuation_list: [0]
+    software_averages: 1
+    points: 1
 
   # rabi_pulse_amplitude:
   #   pulse_amplitude_start: 0 # 0<=a<=1
@@ -113,10 +116,10 @@ actions:
   #   software_averages: 1
   #   points: 1
 
-  allXY:
-    beta_param: Null
-    software_averages: 1
-    points: 1
+  # allXY:
+  #   beta_param: Null
+  #   software_averages: 1
+  #   points: 1
 
   # calibrate_qubit_states:
   #   niter: 1024

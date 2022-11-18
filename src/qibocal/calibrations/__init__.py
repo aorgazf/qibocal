@@ -4,6 +4,7 @@ from qibocal.calibrations.characterization.calibrate_qubit_states import *
 from qibocal.calibrations.characterization.cryoscope import *
 from qibocal.calibrations.characterization.cz_ramsey import *
 from qibocal.calibrations.characterization.flipping import *
+from qibocal.calibrations.characterization.higher_transitions import *
 from qibocal.calibrations.characterization.qubit_spectroscopy import *
 from qibocal.calibrations.characterization.rabi_oscillations import *
 from qibocal.calibrations.characterization.ramsey import *
