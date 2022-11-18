@@ -1,69 +1,11 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import PulseSequence
+from scipy.optimize import minimize
 
 from qibocal import plots
-from qibocal.data import Dataset
+from qibocal.data import DataUnits
 from qibocal.decorators import plot
-from qibocal.fitting.methods import lorentzian_fit
-
-
-@plot("MSR and Phase vs Frequency", plots.frequency_msr_phase)
-def measure_f12(
-    platform: AbstractPlatform,
-    qubit: int,
-    offset_start,
-    offset_end,
-    offset_step,
-    software_averages,
-    points=10,
-):
-    platform.reload_settings()
-
-    qubit_frequency = platform.characterization["single_qubit"][qubit]["qubit_freq"]
-    sequence = PulseSequence()
-    qd_pulse = platform.create_qubit_drive_pulse(qubit, start=0, duration=5000)
-    qd_pulse2 = platform.create_qubit_drive_pulse(qubit, start=0, duration=5000)
-    ro_pulse = platform.create_qubit_readout_pulse(qubit, start=5000)
-    sequence.add(qd_pulse)
-    sequence.add(qd_pulse2)
-    sequence.add(ro_pulse)
-
-    freqrange = qubit_frequency - np.arange(offset_start, offset_end, offset_step)
-
-    data = Dataset(name=f"data_q{qubit}", quantities={"frequency": "Hz"})
-    count = 0
-    for _ in range(software_averages):
-        for freq in freqrange:
-            if count % points == 0 and count > 0:
-                yield data
-                yield lorentzian_fit(
-                    data,
-                    x="frequency[GHz]",
-                    y="MSR[uV]",
-                    qubit=qubit,
-                    nqubits=platform.settings["nqubits"],
-                    labels=["qubit_freq", "peak_voltage"],
-                )
-
-            qd_pulse2.frequency = -(qubit_frequency - freq) / 2
-            platform.qd_port[qubit].lo_frequency = freq - qd_pulse2.frequency
-            qd_pulse.frequency = qubit_frequency - platform.qd_port[qubit].lo_frequency
-
-            msr, phase, i, q = platform.execute_pulse_sequence(sequence)[
-                ro_pulse.serial
-            ]
-            results = {
-                "MSR[V]": msr,
-                "i[V]": i,
-                "q[V]": q,
-                "phase[rad]": phase,
-                "frequency[Hz]": freq,
-            }
-            data.add(results)
-            count += 1
-    yield data
 
 
 @plot("MSR vs length and amplitude", plots.offset_amplitude_msr_phase)
@@ -79,7 +21,7 @@ def rabi_ef(
     software_averages,
     points=10,
 ):
-    """
+    r"""
     Calibration routine to excite the |1> to |2>
 
     Sequence run is: RX - Pulse - RX - M
@@ -112,9 +54,10 @@ def rabi_ef(
     """
     platform.reload_settings()
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}", quantities={"offset": "Hz", "amplitude": "dimensionless"}
     )
+    qubit_frequency = platform.characterization["single_qubit"][qubit]["qubit_freq"]
 
     sequence = PulseSequence()
     RX_pulse = platform.create_RX_pulse(qubit, start=0)
@@ -158,5 +101,78 @@ def rabi_ef(
                 }
                 data.add(results)
                 count += 1
-
+    idx = np.argmax(abs(data.get_values("MSR", "V") - data.get_values("MSR", "V")[0]))
+    qubit_12frequency = qubit_frequency - data.get_values("offset", "Hz")[idx]
+    ec_ej_res = minimize(
+        lambda x: fit_score(
+            x[0], x[1], qubit_frequency * 1e-9, qubit_12frequency * 1e-9
+        ),
+        [0.4, 4.8],
+    )
+    print(
+        f"EC = {ec_ej_res['x'][0]}, Ej = {ec_ej_res['x'][1]} for an unharmonicity of {qubit_frequency - qubit_12frequency}"
+    )
     yield data
+
+
+def fit_score(ec, ej, w01, w12):
+    r = calculate_transmon_transitions(ec, ej)
+    return (r[0] - w01) ** 2 + (r[1] - w12) ** 2
+
+
+def calculate_transmon_transitions(
+    EC, EJ, asym=0, reduced_flux=0, no_transitions=2, dim=None, ng=0, return_injs=False
+):
+    r"""
+    Calculates transmon energy levels from the full transmon qubit Hamiltonian.
+
+    Creds to Ramiro for the script
+
+    Parameters
+    ----------
+    EC:
+        Charging energy of the transmon
+    EJ:
+        Inductive energy
+    asym:
+        Asymetry between the two junctions
+    reduced_flux:
+        Reduced flux
+    no_transitions:
+        Number of transitions
+    dim:
+        Number of dimensions
+    ng:
+        Not so sure
+    return_injs:
+        Not so sure
+
+    """
+    if dim is None:
+        dim = no_transitions * 10
+
+    EJphi = EJ * np.sqrt(
+        asym**2 + (1 - asym**2) * np.cos(np.pi * reduced_flux) ** 2
+    )
+    Ham = 4 * EC * np.diag(np.arange(-dim - ng, dim - ng + 1) ** 2) - EJphi / 2 * (
+        np.eye(2 * dim + 1, k=+1) + np.eye(2 * dim + 1, k=-1)
+    )
+
+    if return_injs:
+        HamEigs, HamEigVs = np.linalg.eigh(Ham)
+        # HamEigs.sort()
+        transitions = HamEigs[1:] - HamEigs[:-1]
+        charge_number_operator = np.diag(np.arange(-dim - ng, dim - ng + 1))
+        injs = np.zeros([dim, dim])
+        for i in range(dim):
+            for j in range(dim):
+                vect_i = np.matrix(HamEigVs[:, i])
+                vect_j = np.matrix(HamEigVs[:, j])
+                injs[i, j] = vect_i * (charge_number_operator * vect_j.getH())
+        return transitions[:no_transitions], injs
+
+    else:
+        HamEigs = np.linalg.eigvalsh(Ham)
+        HamEigs.sort()
+        transitions = HamEigs[1:] - HamEigs[:-1]
+        return transitions[:no_transitions]

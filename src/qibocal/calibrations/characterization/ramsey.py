@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import PulseSequence
 
 from qibocal import plots
-from qibocal.data import Dataset
+from qibocal.data import DataUnits
 from qibocal.decorators import plot
 from qibocal.fitting.methods import ramsey_fit
 
@@ -22,7 +21,7 @@ def ramsey_frequency_detuned(
     platform.reload_settings()
     sampling_rate = platform.sampling_rate
 
-    data = Dataset(name=f"data_q{qubit}", quantities={"wait": "ns", "t_max": "ns"})
+    data = DataUnits(name=f"data_q{qubit}", quantities={"wait": "ns", "t_max": "ns"})
 
     RX90_pulse1 = platform.create_RX90_pulse(qubit, start=0)
     RX90_pulse2 = platform.create_RX90_pulse(qubit, start=RX90_pulse1.finish)

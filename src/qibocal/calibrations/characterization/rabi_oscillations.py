@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import PulseSequence
 
 from qibocal import plots
-from qibocal.data import Dataset
+from qibocal.data import DataUnits
 from qibocal.decorators import plot
 from qibocal.fitting.methods import rabi_fit
 
@@ -21,7 +20,7 @@ def rabi_pulse_length(
 ):
     platform.reload_settings()
 
-    data = Dataset(name=f"data_q{qubit}", quantities={"Time": "ns"})
+    data = DataUnits(name=f"data_q{qubit}", quantities={"Time": "ns"})
 
     sequence = PulseSequence()
     qd_pulse = platform.create_qubit_drive_pulse(qubit, start=0, duration=4)
@@ -78,7 +77,7 @@ def rabi_pulse_gain(
 ):
     platform.reload_settings()
 
-    data = Dataset(name=f"data_q{qubit}", quantities={"gain": "dimensionless"})
+    data = DataUnits(name=f"data_q{qubit}", quantities={"gain": "dimensionless"})
 
     sequence = PulseSequence()
     qd_pulse = platform.create_RX_pulse(qubit, start=0)
@@ -132,7 +131,7 @@ def rabi_pulse_amplitude(
 ):
     platform.reload_settings()
 
-    data = Dataset(name=f"data_q{qubit}", quantities={"amplitude": "dimensionless"})
+    data = DataUnits(name=f"data_q{qubit}", quantities={"amplitude": "dimensionless"})
 
     sequence = PulseSequence()
     qd_pulse = platform.create_RX_pulse(qubit, start=0)
@@ -191,7 +190,7 @@ def rabi_pulse_length_and_gain(
 ):
     platform.reload_settings()
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}", quantities={"duration": "ns", "gain": "dimensionless"}
     )
 
@@ -247,7 +246,7 @@ def rabi_pulse_length_and_amplitude(
 ):
     platform.reload_settings()
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={"duration": "ns", "amplitude": "dimensionless"},
     )

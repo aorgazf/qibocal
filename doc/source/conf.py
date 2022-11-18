@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -95,8 +94,4 @@ autodoc_member_order = "bysource"
 def setup(app):
     app.add_config_value("recommonmark_config", {"enable_eval_rst": True}, True)
     app.add_transform(AutoStructify)
-
-
-def setup(app):
-    """Include custom style to change colors"""
     app.add_css_file("css/style.css")

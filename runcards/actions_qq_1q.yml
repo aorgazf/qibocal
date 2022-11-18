@@ -1,6 +1,6 @@
 platform: tii1q
 
-qubits: [1]
+qubits: [3,4]
 
 format: csv
 
@@ -41,14 +41,6 @@ actions:
     pulse_amplitude_start: 0 # -1.0<=g<=1.0
     pulse_amplitude_end: 1
     pulse_amplitude_step: 0.05
-    software_averages: 1
-    points: 1
-
-  qubit_attenuation:
-    freq_start: -400.e+6
-    freq_end: +50.e+6
-    freq_step: 2.e+6
-    attenuation_list: [0]
     software_averages: 1
     points: 1
 

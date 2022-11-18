@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import PulseSequence
@@ -51,7 +50,7 @@ def allXY(
         platform.characterization["single_qubit"][qubit]["state1_voltage"]
     )
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={"probability": "dimensionless", "gateNumber": "dimensionless"},
     )
@@ -123,7 +122,7 @@ def allXY_iteration(
         platform.characterization["single_qubit"][qubit]["mean_exc_states"]
     )
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={
             "probability": "dimensionless",
