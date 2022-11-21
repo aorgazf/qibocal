@@ -5,7 +5,16 @@ from scipy.optimize import curve_fit
 
 from qibocal.config import log
 from qibocal.data import Data
-from qibocal.fitting.utils import cos, exp, flipping, lorenzian, parse, rabi, ramsey
+from qibocal.fitting.utils import (
+    cos,
+    exp,
+    flipping,
+    line,
+    lorenzian,
+    parse,
+    rabi,
+    ramsey,
+)
 
 
 def lorentzian_fit(data, x, y, qubit, nqubits, labels, fit_file_name=None):
@@ -354,4 +363,142 @@ def drag_tunning_fit(data, x, y, qubit, nqubits, labels):
             labels[0]: beta_optimal,
         }
     )
+    return data_fit
+
+
+def res_spectrocopy_flux_fit(data, x, y, qubit, fluxline, labels):
+    """Fit frequency as a funcition of current for the flux resonator spectroscopy
+        Args:
+        data (DataUnits): Data file with information on the feature response at each current point.
+        x (str): Column of the data file associated to x-axis.
+        y (str): Column of the data file associated to y-axis.
+        qubit (int): qubit coupled to the resonator that we are probing.
+        fluxline (int): id of the current line used for the experiment.
+        labels (list): Names of the data computed from the fit.
+
+    Returns:
+        data_fit (Data): Data file with labels and fit parameters.
+
+    """
+
+    curr = np.array(data.get_values(*parse(x)))
+    freq = np.array(data.get_values(*parse(y))) / 10**9
+    freq_min1 = np.min(freq)
+    freq_max1 = np.max(freq)
+    freq_norm = (freq - freq_min1) / (freq_max1 - freq_min1)
+
+    small_span = 100000 / 10**9
+    resolution = 11
+    freq_err = small_span / (resolution - 1)
+    freq_error_arr = np.zeros(len(freq))
+    for j in range(len(freq_error_arr)):
+        freq_error_arr[j] = freq_err
+
+    if qubit == fluxline:
+        data_fit = Data(
+            name=f"fit_q{qubit}_f{fluxline}",
+            quantities=[
+                "popt0",
+                "popt1",
+                "popt2",
+                "popt3",
+                labels[0],
+                labels[1],
+                labels[2],
+                labels[3],
+                labels[4],
+                labels[5],
+                labels[6],
+                labels[7],
+            ],
+        )
+        try:
+            popt, pcov = curve_fit(
+                cos,
+                curr,
+                freq_norm,
+                sigma=(freq_error_arr - freq_min1) / (freq_max1 - freq_min1),
+            )
+            popt[1] = popt[1] * (freq_max1 - freq_min1)
+            popt[0] = popt[0] * (freq_max1 - freq_min1) + freq_min1
+            n = int(np.round(popt[3] / np.pi))
+            curr_max = (n * np.pi - popt[3]) * popt[2] / (2 * np.pi)
+            curr_max_err = np.abs(popt[2] / (2 * np.pi)) * np.sqrt(
+                np.abs(pcov[3, 3])
+            ) + np.abs((n * np.pi - popt[3]) / (2 * np.pi)) * np.sqrt(
+                np.abs(pcov[2, 2])
+            )
+            freq_max = cos(curr_max, *popt)
+            freq_max_err = (
+                np.sqrt(np.abs(pcov[1, 1])) + np.sqrt(np.abs(pcov[0, 0]))
+            ) * (freq_max1 - freq_min1)
+            freq_offset = cos(0, *popt)
+            freq_offset_err = (
+                np.sqrt(np.abs(pcov[0, 0])) * (freq_max1 - freq_min1)
+                + np.abs(np.cos(popt[3]))
+                * np.sqrt(np.abs(pcov[1, 1]))
+                * (freq_max1 - freq_min1)
+                + np.abs(np.sin(popt[3]) * popt[1]) * np.sqrt(np.abs(pcov[3, 3]))
+            )
+            # freq_offset=freq_max-freq_zero
+            # freq_offset_err=freq_max_err+freq_zero_err
+            C_ii = (freq_max - freq_offset) / curr_max
+            C_ii_err = (
+                freq_max_err / np.abs(curr_max)
+                + freq_offset_err / np.abs(curr_max)
+                + np.abs((freq_max - freq_offset) / curr_max**2) * curr_max_err
+            )
+        except:
+            log.warning("The fitting was not succesful")
+            return data_fit
+
+        data_fit.add(
+            {
+                "popt0": popt[0],
+                "popt1": popt[1],
+                "popt2": popt[2],
+                "popt3": popt[3],
+                labels[0]: curr_max,
+                labels[1]: curr_max_err,
+                labels[2]: freq_max,
+                labels[3]: freq_max_err,
+                labels[4]: C_ii,
+                labels[5]: C_ii_err,
+                labels[6]: freq_offset,
+                labels[7]: freq_offset_err,
+            }
+        )
+    else:
+        data_fit = Data(
+            name=f"fit_q{qubit}_f{fluxline}",
+            quantities=[
+                "popt0",
+                "popt1",
+                labels[0],
+                labels[1],
+            ],
+        )
+        try:
+            popt, pcov = curve_fit(
+                line,
+                curr,
+                freq_norm,
+                sigma=(freq_error_arr - freq_min1) / (freq_max1 - freq_min1),
+            )
+            popt[0] = popt[0] * (freq_max1 - freq_min1)
+            popt[1] = popt[1] * (freq_max1 - freq_min1) + freq_min1
+            C_ij = popt[0]
+            C_ij_err = np.sqrt(np.abs(pcov[0, 0])) * (freq_max1 - freq_min1)
+        except:
+            log.warning("The fitting was not succesful")
+            return data_fit
+
+        data_fit.add(
+            {
+                "popt0": popt[0],
+                "popt1": popt[1],
+                labels[0]: C_ij,
+                labels[1]: C_ij_err,
+            }
+        )
     return data_fit
