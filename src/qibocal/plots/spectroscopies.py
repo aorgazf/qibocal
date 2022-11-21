@@ -4,7 +4,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from qibocal.data import Data, DataUnits
+from qibocal.data import DataUnits
 from qibocal.fitting.utils import lorenzian
 
 
@@ -20,9 +20,9 @@ def frequency_msr_phase__fast_precision(folder, routine, qubit, format):
     except:
         data_precision = DataUnits(quantities={"frequency": "Hz"})
     try:
-        data_fit = Data.load_data(folder, routine, format, f"fit_q{qubit}")
+        data_fit = DataUnits.load_data(folder, routine, format, f"fit_q{qubit}")
     except:
-        data_fit = Data(
+        data_fit = DataUnits(
             quantities=[
                 "popt0",
                 "popt1",
@@ -328,9 +328,9 @@ def dispersive_frequency_msr_phase(folder, routine, qubit, formato):
         )
 
     try:
-        data_fit = Data.load_data(folder, routine, formato, f"fit_q{qubit}")
+        data_fit = DataUnits.load_data(folder, routine, formato, f"fit_q{qubit}")
     except:
-        data_fit = Data(
+        data_fit = DataUnits(
             quantities=[
                 "popt0",
                 "popt1",
@@ -342,11 +342,11 @@ def dispersive_frequency_msr_phase(folder, routine, qubit, formato):
         )
 
     try:
-        data_fit_shifted = Data.load_data(
+        data_fit_shifted = DataUnits.load_data(
             folder, routine, formato, f"fit_shifted_q{qubit}"
         )
     except:
-        data_fit_shifted = Data(
+        data_fit_shifted = DataUnits(
             quantities=[
                 "popt0",
                 "popt1",

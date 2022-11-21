@@ -34,7 +34,7 @@ def qubit_spectroscopy(
 
     freqrange = np.arange(fast_start, fast_end, fast_step) + qubit_frequency
 
-    data = Dataset(name=f"fast_sweep_q{qubit}", quantities={"frequency": "Hz"})
+    data = DataUnits(name=f"fast_sweep_q{qubit}", quantities={"frequency": "Hz"})
     count = 0
     for _ in range(software_averages):
         for freq in freqrange:
@@ -205,7 +205,7 @@ def qubit_spectroscopy_flux_track(
     sequence.add(qd_pulse)
     sequence.add(ro_pulse)
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}", quantities={"frequency": "Hz", "current": "A"}
     )
 
@@ -280,7 +280,7 @@ def qubit_attenuation(
     sequence.add(qd_pulse)
     sequence.add(ro_pulse)
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}", quantities={"frequency": "Hz", "attenuation": "dB"}
     )
 

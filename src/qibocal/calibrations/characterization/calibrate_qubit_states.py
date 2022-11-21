@@ -22,7 +22,7 @@ def calibrate_qubit_states(
     exc_sequence.add(RX_pulse)
     exc_sequence.add(ro_pulse)
 
-    data_exc = Dataset(
+    data_exc = DataUnits(
         name=f"data_exc_q{qubit}", quantities={"iteration": "dimensionless"}
     )
     iq_exc = []
@@ -48,7 +48,7 @@ def calibrate_qubit_states(
     gnd_sequence = PulseSequence()
     gnd_sequence.add(ro_pulse)
 
-    data_gnd = Dataset(
+    data_gnd = DataUnits(
         name=f"data_gnd_q{qubit}", quantities={"iteration": "dimensionless"}
     )
     iq_gnd = []
@@ -70,7 +70,7 @@ def calibrate_qubit_states(
         data_gnd.add(results)
         count += 1
     yield data_gnd
-    parameters = Dataset(
+    parameters = DataUnits(
         name=f"parameters_q{qubit}",
         quantities={
             "rotation_angle": "dimensionless",  # in degrees
@@ -145,7 +145,7 @@ def calibrate_qubit_states_binning(
     ro_pulse = platform.create_qubit_readout_pulse(qubit, start=RX_pulse.duration)
     exc_sequence.add(RX_pulse)
     exc_sequence.add(ro_pulse)
-    data_exc = Dataset(
+    data_exc = DataUnits(
         name=f"data_exc_q{qubit}", quantities={"iteration": "dimensionless"}
     )
     msr, phase, i, q = platform.execute_pulse_sequence(exc_sequence, nshots)[
@@ -166,7 +166,7 @@ def calibrate_qubit_states_binning(
     gnd_sequence = PulseSequence()
     gnd_sequence.add(ro_pulse)
 
-    data_gnd = Dataset(
+    data_gnd = DataUnits(
         name=f"data_gnd_q{qubit}", quantities={"iteration": "dimensionless"}
     )
     msr, phase, i, q = platform.execute_pulse_sequence(gnd_sequence, nshots)[
@@ -184,7 +184,7 @@ def calibrate_qubit_states_binning(
     data_gnd.set(results)
     yield data_gnd
 
-    parameters = Dataset(
+    parameters = DataUnits(
         name=f"parameters_q{qubit}",
         quantities={
             "rotation_angle": "dimensionless",  # in degrees

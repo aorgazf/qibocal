@@ -11,7 +11,7 @@ from qibocal.decorators import plot
 @plot("MSR vs length and amplitude", plots.offset_amplitude_msr_phase)
 def rabi_ef(
     platform: AbstractPlatform,
-    qubit,
+    qubit: int,
     pulse_offset_frequency_start,
     pulse_offset_frequency_end,
     pulse_offset_frequency_step,

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from cProfile import label
 
 import matplotlib.pyplot as plt
@@ -10,13 +9,13 @@ from plotly.subplots import make_subplots
 from scipy.optimize import curve_fit
 from scipy.signal import lfilter
 
-from qibocal.data import Data, Dataset
+from qibocal.data import Data, DataUnits
 from qibocal.fitting.utils import cos, exp, flipping, lorenzian, rabi, ramsey
 
 
 # For cryoscope
 def cryoscope(folder, routine, qubit, format):
-    data = Dataset.load_data(folder, routine, format, f"data_q{qubit}")
+    data = DataUnits.load_data(folder, routine, format, f"data_q{qubit}")
     import numpy as np
 
     MX_tag = "MX"

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import SNZ, FluxPulse, Pulse, PulseSequence, PulseType, Rectangular
@@ -8,7 +7,7 @@ from qibocal.calibrations.characterization.utils import (
     iq_to_prob,
     variable_resolution_scanrange,
 )
-from qibocal.data import Dataset
+from qibocal.data import DataUnits
 from qibocal.decorators import plot
 from qibocal.fitting.methods import drag_tunning_fit
 
@@ -48,7 +47,7 @@ def cz_tune(
                 qubit_control += [qubit]
                 qubit_target += [platform.qubits[i]]
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_duration": "ns",
@@ -259,7 +258,7 @@ def amplitude_cz(
                 qubit_control += [qubit]
                 qubit_target += [platform.qubits[i]]
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_detuning": "degree",
@@ -448,7 +447,7 @@ def amplitude_balance_cz(
                 qubit_control += [qubit]
                 qubit_target += [platform.qubits[i]]
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_detuning": "degree",
@@ -644,7 +643,7 @@ def chevron_iswap(
                 qubit_control += [qubit]
                 qubit_target += [platform.qubits[i]]
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_duration": "ns",

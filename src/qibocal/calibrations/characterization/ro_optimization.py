@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import PulseSequence
 
 from qibocal import plots
 from qibocal.calibrations.characterization.utils import get_fidelity
-from qibocal.data import Dataset
+from qibocal.data import DataUnits
 from qibocal.decorators import plot
 
 
@@ -32,7 +31,7 @@ def ro_frequency_optimization(
         + platform.characterization["single_qubit"][qubit]["resonator_freq"]
     )
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={"frequency": "Hz", "fidelity": "dimensionless"},
     )
@@ -87,7 +86,7 @@ def ro_power_optimization(
 
     amplitudes = np.arange(amplitude_min, amplitude_max, amplitude_step)
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={"amplitude": "dimensionless", "fidelity": "dimensionless"},
     )

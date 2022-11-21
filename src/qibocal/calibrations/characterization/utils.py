@@ -8,7 +8,7 @@ from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import PulseSequence
 from sympy import Q
 
-from qibocal.data import Dataset
+from qibocal.data import DataUnits
 
 
 def variable_resolution_scanrange(
@@ -86,7 +86,7 @@ def get_fidelity(
         param_dict[key.split("[")[0]] = key.split("[")[1].replace("]", "")
     quantities = {"iteration": "dimensionless"}
     quantities.update(param_dict)
-    data_exc = Dataset(name=f"data_exc_{param}_q{qubit}", quantities=quantities)
+    data_exc = DataUnits(name=f"data_exc_{param}_q{qubit}", quantities=quantities)
     shots_results = platform.execute_pulse_sequence(exc_sequence, nshots=niter)[
         "binned_integrated"
     ][ro_pulse.serial]
@@ -110,7 +110,7 @@ def get_fidelity(
     ro_pulse.amplitude = amplitude_ro_pulse
     gnd_sequence.add(ro_pulse)
 
-    data_gnd = Dataset(name=f"data_gnd_{param}_q{qubit}", quantities=quantities)
+    data_gnd = DataUnits(name=f"data_gnd_{param}_q{qubit}", quantities=quantities)
 
     shots_results = platform.execute_pulse_sequence(exc_sequence, nshots=niter)[
         "binned_integrated"

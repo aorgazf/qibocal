@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import FluxPulse, Pulse, PulseSequence, PulseType, Rectangular
 
 from qibocal import plots
 from qibocal.calibrations.characterization.utils import iq_to_prob
-from qibocal.data import Dataset
+from qibocal.data import DataUnits
 from qibocal.decorators import plot
 
 
@@ -73,7 +72,7 @@ def cryoscope(
     MX_tag = "MX"
     MY_tag = "MY"
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_duration": "ns",
@@ -215,7 +214,7 @@ def cryoscope_amplitude(
     MY_tag = "MY"
     MZ_tag = "MZ"
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={
             "flux_pulse_duration": "ns",

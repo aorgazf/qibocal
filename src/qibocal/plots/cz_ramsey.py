@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -9,13 +8,13 @@ from plotly.subplots import make_subplots
 from scipy.optimize import curve_fit
 from scipy.signal import lfilter
 
-from qibocal.data import Data, Dataset
+from qibocal.data import Data, DataUnits
 from qibocal.fitting.utils import cos, exp, flipping, lorenzian, rabi, ramsey
 
 
 # For cz_ramsey
 def snz(folder, routine, qubit, format):
-    data = Dataset.load_data(folder, routine, format, f"data_q{qubit}")
+    data = DataUnits.load_data(folder, routine, format, f"data_q{qubit}")
 
     ON = "ON"
     OFF = "OFF"
@@ -346,7 +345,7 @@ def snz(folder, routine, qubit, format):
 
 
 def snz_detuning(folder, routine, qubit, format):
-    data = Dataset.load_data(folder, routine, format, f"data_q{qubit}")
+    data = DataUnits.load_data(folder, routine, format, f"data_q{qubit}")
 
     ON = "ON"
     OFF = "OFF"
@@ -695,7 +694,7 @@ def snz_detuning(folder, routine, qubit, format):
 
 
 def chevron_iswap(folder, routine, qubit, format):
-    data = Dataset.load_data(folder, routine, format, f"data_q{qubit}")
+    data = DataUnits.load_data(folder, routine, format, f"data_q{qubit}")
 
     # Making figure
     figs = {}

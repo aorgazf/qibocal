@@ -4,7 +4,7 @@ from qibolab.pulses import PulseSequence
 
 from qibocal import plots
 from qibocal.calibrations.characterization.utils import iq_to_prob
-from qibocal.data import Dataset
+from qibocal.data import DataUnits
 from qibocal.decorators import plot
 from qibocal.fitting.methods import drag_tunning_fit
 
@@ -173,7 +173,7 @@ def drag_pulse_tunning(
     points=10,
 ):
 
-    data = Dataset(name=f"data_q{qubit}", quantities={"beta_param": "dimensionless"})
+    data = DataUnits(name=f"data_q{qubit}", quantities={"beta_param": "dimensionless"})
 
     mean_gnd = complex(
         platform.characterization["single_qubit"][qubit]["mean_gnd_states"]

@@ -117,7 +117,7 @@ def ramsey_frequency_detuned(
         # if (new_t2 > current_T2).bool() and len(t_end) > 1:
         #     current_qubit_freq = int(corrected_qubit_freq)
         #     current_T2 = new_t2
-        #     data = Dataset(
+        #     data = DataUnits(
         #         name=f"data_q{qubit}", quantities={"wait": "ns", "t_max": "ns"}
         #     )
         # else:
@@ -157,7 +157,7 @@ def ramsey(
         delay_between_pulses_step,
     )
 
-    data = Dataset(name=f"data_q{qubit}", quantities={"wait": "ns", "t_max": "ns"})
+    data = DataUnits(name=f"data_q{qubit}", quantities={"wait": "ns", "t_max": "ns"})
     count = 0
     for _ in range(software_averages):
         for wait in waits:

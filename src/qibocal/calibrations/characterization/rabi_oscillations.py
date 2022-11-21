@@ -303,7 +303,7 @@ def rabi_pulse_amplitude_and_attenuation(
 ):
     platform.reload_settings()
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={"attenuation": "dB", "amplitude": "dimensionless"},
     )
@@ -360,7 +360,7 @@ def rabi_pulse_gain_and_attenuation(
 ):
     platform.reload_settings()
 
-    data = Dataset(
+    data = DataUnits(
         name=f"data_q{qubit}",
         quantities={"attenuation": "dB", "amplitude": "dimensionless"},
     )
