@@ -25,7 +25,7 @@ def qubit_spectroscopy(
 
     sequence = PulseSequence()
     qd_pulse = platform.create_qubit_drive_pulse(qubit, start=0, duration=5000)
-    qd_pulse.frequency = 1.0e6
+    qd_pulse.frequency = 100.0e6
     ro_pulse = platform.create_qubit_readout_pulse(qubit, start=5000)
     sequence.add(qd_pulse)
     sequence.add(ro_pulse)
@@ -284,8 +284,8 @@ def qubit_attenuation(
         name=f"data_q{qubit}", quantities={"frequency": "Hz", "attenuation": "dB"}
     )
 
-    lo_qcm_frequency = platform.characterization["single_qubit"][qubit]["qubit_freq"]
-    freqrange = np.arange(freq_start, freq_end, freq_step) + lo_qcm_frequency
+    qubit_freq = platform.characterization["single_qubit"][qubit]["qubit_freq"]
+    freqrange = np.arange(freq_start, freq_end, freq_step) + qubit_freq
 
     if isinstance(attenuation_list, str):
         attenuation_list = eval(attenuation_list)

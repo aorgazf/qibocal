@@ -23,14 +23,15 @@ def frequency_msr_phase__fast_precision(folder, routine, qubit, format):
         data_fit = DataUnits.load_data(folder, routine, format, f"fit_q{qubit}")
     except:
         data_fit = DataUnits(
-            quantities=[
+            name="none",
+            options=[
                 "popt0",
                 "popt1",
                 "popt2",
                 "popt3",
                 "label1",
                 "label2",
-            ]
+            ],
         )
 
     fig = make_subplots(

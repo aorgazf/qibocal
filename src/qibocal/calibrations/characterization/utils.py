@@ -87,17 +87,16 @@ def get_fidelity(
     quantities = {"iteration": "dimensionless"}
     quantities.update(param_dict)
     data_exc = DataUnits(name=f"data_exc_{param}_q{qubit}", quantities=quantities)
-    shots_results = platform.execute_pulse_sequence(exc_sequence, nshots=niter)[
+    msr, phase, i, q = platform.execute_pulse_sequence(exc_sequence, nshots=niter)[
         "binned_integrated"
     ][ro_pulse.serial]
 
     for n in np.arange(niter):
-        msr, phase, i, q = shots_results[n]
         results = {
-            "MSR[V]": msr,
-            "i[V]": i,
-            "q[V]": q,
-            "phase[rad]": phase,
+            "MSR[V]": msr[n],
+            "i[V]": i[n],
+            "q[V]": q[n],
+            "phase[rad]": phase[n],
             "iteration[dimensionless]": n,
         }
         results.update(param)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import PulseSequence
@@ -12,8 +11,9 @@ from qibocal.calibrations.characterization.utils import (
     snr,
 )
 from qibocal.data import DataUnits
-from qibocal.fitting.methods import res_spectrocopy_flux_fit
 from qibocal.decorators import plot
+from qibocal.fitting.methods import res_spectrocopy_flux_fit
+
 
 def scan_level(
     best_f,
@@ -27,7 +27,7 @@ def scan_level(
     ro_pulse,
     qubit,
     sequence,
-    software_averages
+    software_averages,
 ):
     """Scans for the feature by sampling a gaussian near the previously found best point. Decides if the freature
     is found by checking if the snr against background noise is above a threshold.
@@ -57,10 +57,12 @@ def scan_level(
         else:
             freq = choose_freq(best_f, span, resolution)
         platform.ro_port[qubit].lo_frequency = freq - ro_pulse.frequency
-        avg=np.zeros(software_averages)
+        avg = np.zeros(software_averages)
         for j in range(len(avg)):
-            avg[j], phase, i, q = platform.execute_pulse_sequence(sequence)[ro_pulse.serial]
-        msr=np.mean(avg)
+            avg[j], phase, i, q = platform.execute_pulse_sequence(sequence)[
+                ro_pulse.serial
+            ]
+        msr = np.mean(avg)
         if platform.resonator_type == "3D":
             if msr > best_msr:
                 if abs(snr(msr, noise)) >= thr:
@@ -75,7 +77,15 @@ def scan_level(
 
 
 def scan_small(
-    best_f, best_msr, span, resolution, platform, ro_pulse, qubit, sequence, software_averages
+    best_f,
+    best_msr,
+    span,
+    resolution,
+    platform,
+    ro_pulse,
+    qubit,
+    sequence,
+    software_averages,
 ):
     """Small scan around the found feature to fine-tune the measurement up to given precision.
 
@@ -100,10 +110,12 @@ def scan_small(
     for s in scan:
         freq = start_f + s
         platform.ro_port[qubit].lo_frequency = freq - ro_pulse.frequency
-        avg=np.zeros(software_averages)
+        avg = np.zeros(software_averages)
         for j in range(len(avg)):
-            avg[j], phase, i, q = platform.execute_pulse_sequence(sequence)[ro_pulse.serial]
-        msr=np.mean(avg)
+            avg[j], phase, i, q = platform.execute_pulse_sequence(sequence)[
+                ro_pulse.serial
+            ]
+        msr = np.mean(avg)
         if platform.resonator_type == "3D":
             if msr > best_msr:
                 best_f, best_msr = freq, msr
@@ -124,7 +136,7 @@ def resonator_punchout_sample(
     spans,
     small_spans,
     resolution,
-    software_averages
+    software_averages,
 ):
     """Use gaussian samples to extract the punchout of the resonator for different values of attenuation.
 
@@ -184,13 +196,21 @@ def resonator_punchout_sample(
                 ro_pulse,
                 qubit,
                 sequence,
-                software_averages
+                software_averages,
             )
         for span in small_spans:
             best_f, best_msr = scan_small(
-                best_f, best_msr, span, 11, platform, ro_pulse, qubit, sequence, software_averages
+                best_f,
+                best_msr,
+                span,
+                11,
+                platform,
+                ro_pulse,
+                qubit,
+                sequence,
+                software_averages,
             )
-        # freqs.append(best_f)
+        freqs.append(best_f)
         results = {
             "MSR[V]": best_msr,
             "i[V]": 455,
@@ -228,7 +248,7 @@ def resonator_flux_sample(
     spans,
     small_spans,
     resolution,
-    software_averages
+    software_averages,
 ):
     """Use gaussian samples to extract the flux-frequency response of the resonator for different values of current.
 
@@ -252,7 +272,8 @@ def resonator_flux_sample(
     """
 
     data = DataUnits(
-        name=f"data_q{qubit}_f{fluxline}", quantities={"frequency": "Hz", "current": "A"}
+        name=f"data_q{qubit}_f{fluxline}",
+        quantities={"frequency": "Hz", "current": "A"},
     )
 
     if fluxline == "qubit":
@@ -304,11 +325,19 @@ def resonator_flux_sample(
                 ro_pulse,
                 qubit,
                 sequence,
-                software_averages
+                software_averages,
             )
         for span in small_spans:
             best_f, best_msr = scan_small(
-                best_f, best_msr, span, 11, platform, ro_pulse, qubit, sequence, software_averages
+                best_f,
+                best_msr,
+                span,
+                11,
+                platform,
+                ro_pulse,
+                qubit,
+                sequence,
+                software_averages,
             )
         freqs1.append(best_f)
 
@@ -331,11 +360,19 @@ def resonator_flux_sample(
                 ro_pulse,
                 qubit,
                 sequence,
-                software_averages
+                software_averages,
             )
         for span in small_spans:
             best_f, best_msr = scan_small(
-                best_f, best_msr, span, 11, platform, ro_pulse, qubit, sequence, software_averages
+                best_f,
+                best_msr,
+                span,
+                11,
+                platform,
+                ro_pulse,
+                qubit,
+                sequence,
+                software_averages,
             )
         freqs2.append(best_f)
 
@@ -355,14 +392,13 @@ def resonator_flux_sample(
     sweet_freq = np.max(freqs)
     sweet_curr = current_range[np.argmax(freqs)]
 
-    plot_flux(current_range, freqs, qubit, fluxline)
-
     print(f"For qubit {qubit}:")
     print(
         f"Sweet spot found at frequency {sweet_freq} Hz at current value of {sweet_curr} A.\n"
     )
-
+    plot_flux(current_range, freqs, qubit, fluxline)
     yield data
+
 
 @plot("Frequency vs Current", plots.frequency_current_flux)
 def resonator_flux_sample_matrix(
@@ -377,8 +413,8 @@ def resonator_flux_sample_matrix(
     spans,
     small_spans,
     resolution,
-    software_averages
-):  
+    software_averages,
+):
     """Use gaussian samples to extract the flux-frequency response of the resonator for different values of current.
 
     Args:
@@ -400,9 +436,10 @@ def resonator_flux_sample_matrix(
 
     """
     for fluxline in fluxlines:
-        fluxline=int(fluxline)
+        fluxline = int(fluxline)
         data = DataUnits(
-        name=f"data_q{qubit}_f{fluxline}", quantities={"frequency": "Hz", "current": "A"}
+            name=f"data_q{qubit}_f{fluxline}",
+            quantities={"frequency": "Hz", "current": "A"},
         )
 
         if fluxline == "qubit":
@@ -454,11 +491,19 @@ def resonator_flux_sample_matrix(
                     ro_pulse,
                     qubit,
                     sequence,
-                    software_averages
+                    software_averages,
                 )
             for span in small_spans:
                 best_f, best_msr = scan_small(
-                    best_f, best_msr, span, 11, platform, ro_pulse, qubit, sequence, software_averages
+                    best_f,
+                    best_msr,
+                    span,
+                    11,
+                    platform,
+                    ro_pulse,
+                    qubit,
+                    sequence,
+                    software_averages,
                 )
             freqs1.append(best_f)
 
@@ -481,11 +526,19 @@ def resonator_flux_sample_matrix(
                     ro_pulse,
                     qubit,
                     sequence,
-                    software_averages
+                    software_averages,
                 )
             for span in small_spans:
                 best_f, best_msr = scan_small(
-                    best_f, best_msr, span, 11, platform, ro_pulse, qubit, sequence, software_averages
+                    best_f,
+                    best_msr,
+                    span,
+                    11,
+                    platform,
+                    ro_pulse,
+                    qubit,
+                    sequence,
+                    software_averages,
                 )
             freqs2.append(best_f)
 
@@ -501,21 +554,30 @@ def resonator_flux_sample_matrix(
                 "current[A]": current_range[i],
             }
             data.add(results)
-        
+
         yield data
-        
-        if qubit==fluxline:
-            labels=["sweet_curr", "sweet_curr_err", "sweet_freq", "sweet_freq_err", "C_ii", "C_ii_err", "freq_offset", "freq_offset_err"]
+
+        if qubit == fluxline:
+            labels = [
+                "sweet_curr",
+                "sweet_curr_err",
+                "sweet_freq",
+                "sweet_freq_err",
+                "C_ii",
+                "C_ii_err",
+                "freq_offset",
+                "freq_offset_err",
+            ]
         else:
-            labels=["C_ij", "C_ij_err"]
+            labels = ["C_ij", "C_ij_err"]
 
         yield res_spectrocopy_flux_fit(
-                    data,
-                    x="current[A]",
-                    y="frequency[Hz]",
-                    qubit=qubit,
-                    fluxline=fluxline,
-                    labels=labels,
-                )
+            data,
+            x="current[A]",
+            y="frequency[Hz]",
+            qubit=qubit,
+            fluxline=fluxline,
+            labels=labels,
+        )
 
         yield data
