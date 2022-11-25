@@ -261,6 +261,7 @@ def qubit_spectroscopy_flux_track(
 
 
 @plot("Frequency vs Attenuation", plots.frequency_attenuation_msr_phase)
+@plot("Frequency vs Attenuation in 1D", plots.frequency_attenuation_1D_msr_phase)
 def qubit_attenuation(
     platform: AbstractPlatform,
     qubit: int,
@@ -299,9 +300,15 @@ def qubit_attenuation(
                     yield data
                 platform.qd_port[qubit].lo_frequency = freq - qd_pulse.frequency
                 platform.qd_port[qubit].attenuation = att
-                msr, phase, i, q = platform.execute_pulse_sequence(sequence)[
-                    ro_pulse.serial
-                ]
+                while True:
+                    try:
+                        msr, phase, i, q = platform.execute_pulse_sequence(sequence)[
+                            ro_pulse.serial
+                        ]
+                    except:
+                        continue
+                    break
+
                 results = {
                     "MSR[V]": msr,
                     "i[V]": i,
@@ -314,4 +321,62 @@ def qubit_attenuation(
                 data.add(results)
                 count += 1
 
+    yield data
+
+
+# write same function as qubit_attenuation with amplitude
+@plot("Frequency vs Amplitude", plots.frequency_amplitude_msr_phase)
+@plot("Frequency vs Amplitude in 1D", plots.frequency_amplitude_1D_msr_phase)
+def qubit_amplitude(
+    platform: AbstractPlatform,
+    qubit: int,
+    freq_start,
+    freq_end,
+    freq_step,
+    amplitude_list,
+    software_averages,
+    points=10,
+):
+    platform.reload_settings()
+
+    sequence = PulseSequence()
+    qd_pulse = platform.create_qubit_drive_pulse(qubit, start=0, duration=5000)
+    qd_pulse.frequency = 1.0e6
+    ro_pulse = platform.create_qubit_readout_pulse(qubit, start=5000)
+    sequence.add(qd_pulse)
+    sequence.add(ro_pulse)
+
+    data = DataUnits(
+        name=f"data_q{qubit}",
+        quantities={"frequency": "Hz", "amplitude": "dimensionless"},
+    )
+
+    qubit_freq = platform.characterization["single_qubit"][qubit]["qubit_freq"]
+    freqrange = np.arange(freq_start, freq_end, freq_step) + qubit_freq
+
+    if isinstance(amplitude_list, str):
+        amplitude_list = eval(amplitude_list)
+
+    count = 0
+    amplitude_list = np.array(amplitude_list)
+    for _ in range(software_averages):
+        for amp in amplitude_list:
+            for freq in freqrange:
+                if count % points == 0:
+                    yield data
+                platform.qd_port[qubit].lo_frequency = freq - qd_pulse.frequency
+                qd_pulse.amplitude = amp
+                msr, phase, i, q = platform.execute_pulse_sequence(sequence)[
+                    ro_pulse.serial
+                ]
+                results = {
+                    "MSR[V]": msr,
+                    "i[V]": i,
+                    "q[V]": q,
+                    "phase[deg]": phase,
+                    "frequency[Hz]": freq,
+                    "amplitude[dimensionless]": amp,
+                }
+                data.add(results)
+                count += 1
     yield data

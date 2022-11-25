@@ -4,8 +4,10 @@ from qibocal.plots.cryoscope import *
 from qibocal.plots.cz_ramsey import *
 from qibocal.plots.flipping import *
 from qibocal.plots.higher_transition import *
+from qibocal.plots.qubit_spectroscopies import *
 from qibocal.plots.rabi import *
 from qibocal.plots.ramsey import *
+from qibocal.plots.resonator_spectroscopies import *
 from qibocal.plots.resonator_spectroscopy_sample import *
 from qibocal.plots.ro_optimization import *
 from qibocal.plots.spectroscopies import *

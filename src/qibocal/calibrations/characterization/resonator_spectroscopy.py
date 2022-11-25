@@ -284,9 +284,16 @@ def resonator_spectroscopy_flux_matrix(
     current_range = np.arange(current_min, current_max, current_step)
 
     count = 0
+
+    if fluxlines == "diag":
+        fluxlines = [qubit]
+    elif fluxlines == "all":
+        fluxlines = range(platform.nqubits)
+    elif fluxlines == "outer":
+        fluxlines = np.arange(platform.nqubits)
+        fluxlines = fluxlines[fluxlines != qubit]
+
     for fluxline in fluxlines:
-        fluxline = int(fluxline)
-        print(fluxline)
         data = DataUnits(
             name=f"data_q{qubit}_f{fluxline}",
             quantities={"frequency": "Hz", "current": "A"},
@@ -407,3 +414,57 @@ def dispersive_shift(
             data_shifted.add(results)
             count += 1
     yield data_shifted
+
+
+# write resonator_flux using qf_port[qubit].offset instead of current
+@plot("MSR and Phase vs Frequency", plots.frequency_flux_msr_phase)
+def resonator_flux_offset(
+    platform: AbstractPlatform,
+    qubit: int,
+    freq_width,
+    freq_step,
+    flux_amp_min,
+    flux_amp_max,
+    flux_amp_step,
+    software_averages,
+    points=10,
+):
+    platform.reload_settings()
+
+    sequence = PulseSequence()
+    ro_pulse = platform.create_qubit_readout_pulse(qubit, start=0)
+    sequence.add(ro_pulse)
+
+    resonator_frequency = platform.characterization["single_qubit"][qubit][
+        "resonator_freq"
+    ]
+
+    frequency_range = (
+        np.arange(-freq_width, freq_width, freq_step) + resonator_frequency
+    )
+    flux_range = np.arange(flux_amp_min, flux_amp_max, flux_amp_step)
+
+    count = 0
+
+    data = DataUnits(
+        name=f"data_q{qubit}",
+        quantities={"frequency": "Hz", "amplitude": "dimensionless"},
+    )
+    for _ in range(software_averages):
+        for flux in flux_range:
+            for freq in frequency_range:
+                if count % points == 0:
+                    yield data
+                platform.ro_port[qubit].lo_frequency = freq - ro_pulse.frequency
+                platform.qf_port[qubit].offset = flux
+                msr, phase, i, q = platform.execute_pulse_sequence(sequence)[
+                    ro_pulse.serial
+                ]
+                results = {
+                    "MSR[V]": msr,
+                    "i[V]": i,
+                    "q[V]": q,
+                    "phase[rad]": phase,
+                    "frequency[Hz]": freq,
+                    "amplitude[dimensionless]": flux,
+                }
