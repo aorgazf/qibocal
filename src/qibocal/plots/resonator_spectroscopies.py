@@ -59,3 +59,105 @@ def frequency_flux_msr_phase__matrix(folder, routine, qubit, format):
         uirevision="0",  # ``uirevision`` allows zooming while live plotting
     )
     return fig
+
+
+# load the offset instead of the current and call the function frequency_flux_offset_msr_phase
+
+
+def frequency_flux_offset_msr_phase__matrix(folder, routine, qubit, format):
+    fluxes = []
+    for i in range(25):  # FIXME: 25 is hardcoded
+        file = f"{folder}/data/{routine}/data_q{qubit}_f{i}.csv"
+        if os.path.exists(file):
+            fluxes += [i]
+
+    if len(fluxes) < 1:
+        nb = 1
+    else:
+        nb = len(fluxes) + 1
+    fig = make_subplots(
+        rows=2,
+        cols=nb,
+        horizontal_spacing=0.1,
+        vertical_spacing=0.1,
+        x_title="Frequency (Hz)",
+        y_title="Offset (dimensionless)",
+        shared_xaxes=True,
+        shared_yaxes=True,
+    )
+
+    for j in fluxes:
+        if j == fluxes[-1]:
+            showscale = True
+        else:
+            showscale = False
+        data = DataUnits.load_data(folder, routine, format, f"data_q{qubit}_f{j}")
+        fig.add_trace(
+            go.Heatmap(
+                x=data.get_values("frequency", "GHz"),
+                y=data.get_values("offset", "dimensionless"),
+                z=data.get_values("MSR", "V"),
+                showscale=showscale,
+            ),
+            row=1,
+            col=j + 1,
+        )
+        fig.add_trace(
+            go.Heatmap(
+                x=data.get_values("frequency", "GHz"),
+                y=data.get_values("offset", "dimensionless"),
+                z=data.get_values("phase", "rad"),
+                showscale=showscale,
+            ),
+            row=2,
+            col=j + 1,
+        )
+    fig.update_layout(
+        showlegend=False,
+        uirevision="0",  # ``uirevision`` allows zooming while live plotting
+    )
+    return fig
+
+
+def frequency_flux_offset_msr_phase(folder, routine, qubit, format):
+    data = DataUnits.load_data(folder, routine, format, f"data_q{qubit}")
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        horizontal_spacing=0.1,
+        vertical_spacing=0.1,
+        subplot_titles=(
+            "MSR (V)",
+            "phase (rad)",
+        ),
+    )
+
+    fig.add_trace(
+        go.Heatmap(
+            x=data.get_values("frequency", "GHz"),
+            y=data.get_values("offset", "dimensionless"),
+            z=data.get_values("MSR", "V"),
+            colorbar_x=0.45,
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Heatmap(
+            x=data.get_values("frequency", "GHz"),
+            y=data.get_values("offset", "dimensionless"),
+            z=data.get_values("phase", "rad"),
+            colorbar_x=1.0,
+        ),
+        row=1,
+        col=2,
+    )
+    fig.update_layout(
+        showlegend=False,
+        uirevision="0",  # ``uirevision`` allows zooming while live plotting
+        xaxis_title="Frequency (GHz)",
+        yaxis_title="Offset (dimensionless)",
+        xaxis2_title="Frequency (GHz)",
+        yaxis2_title="Offset (dimensionless)",
+    )
+    return fig

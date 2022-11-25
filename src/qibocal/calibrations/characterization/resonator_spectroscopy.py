@@ -416,8 +416,7 @@ def dispersive_shift(
     yield data_shifted
 
 
-# write resonator_flux using qf_port[qubit].offset instead of current
-@plot("MSR and Phase vs Frequency", plots.frequency_flux_msr_phase)
+@plot("MSR and Phase vs Frequency", plots.frequency_flux_offset_msr_phase)
 def resonator_flux_offset(
     platform: AbstractPlatform,
     qubit: int,
@@ -448,7 +447,7 @@ def resonator_flux_offset(
 
     data = DataUnits(
         name=f"data_q{qubit}",
-        quantities={"frequency": "Hz", "amplitude": "dimensionless"},
+        quantities={"frequency": "Hz", "offset": "dimensionless"},
     )
     for _ in range(software_averages):
         for flux in flux_range:
@@ -466,5 +465,9 @@ def resonator_flux_offset(
                     "q[V]": q,
                     "phase[rad]": phase,
                     "frequency[Hz]": freq,
-                    "amplitude[dimensionless]": flux,
+                    "offset[dimensionless]": flux,
                 }
+                data.add(results)
+                count += 1
+
+    yield data
