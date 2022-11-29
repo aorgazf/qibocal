@@ -455,7 +455,7 @@ def resonator_flux_offset(
                 if count % points == 0:
                     yield data
                 platform.ro_port[qubit].lo_frequency = freq - ro_pulse.frequency
-                platform.qf_port[qubit].offset = flux
+                platform.qb_port[qubit].offset = flux
                 msr, phase, i, q = platform.execute_pulse_sequence(sequence)[
                     ro_pulse.serial
                 ]
@@ -470,4 +470,118 @@ def resonator_flux_offset(
                 data.add(results)
                 count += 1
 
+    yield data
+
+
+@plot("MSR vs Frequency", plots.frequency_gain_msr_phase)
+def resonator_gain(
+    platform: AbstractPlatform,
+    qubit: int,
+    freq_width,
+    freq_step,
+    min_gain,
+    max_gain,
+    step_gain,
+    software_averages,
+    points=10,
+):
+    platform.reload_settings()
+
+    data = DataUnits(
+        name=f"data_q{qubit}", quantities={"frequency": "Hz", "gain": "dimensionless"}
+    )
+    ro_pulse = platform.create_qubit_readout_pulse(qubit, start=0)
+    sequence = PulseSequence()
+    sequence.add(ro_pulse)
+
+    # TODO: move this explicit instruction to the platform
+    resonator_frequency = platform.characterization["single_qubit"][qubit][
+        "resonator_freq"
+    ]
+    frequency_range = (
+        np.arange(-freq_width, freq_width, freq_step)
+        + resonator_frequency
+        - (freq_width / 4)
+    )
+    gain_range = np.flip(np.arange(min_gain, max_gain, step_gain))
+    count = 0
+    for _ in range(software_averages):
+        for gain in gain_range:
+            for freq in frequency_range:
+                if count % points == 0:
+                    yield data
+                # TODO: move these explicit instructions to the platform
+                platform.ro_port[qubit].lo_frequency = freq - ro_pulse.frequency
+                platform.ro_port[qubit].gain = gain
+                msr, phase, i, q = platform.execute_pulse_sequence(sequence)[
+                    ro_pulse.serial
+                ]
+                results = {
+                    "MSR[V]": msr / gain,
+                    "i[V]": i,
+                    "q[V]": q,
+                    "phase[rad]": phase,
+                    "frequency[Hz]": freq,
+                    "gain[dimensionless]": gain,
+                }
+                # TODO: implement normalization
+                data.add(results)
+                count += 1
+
+    yield data
+
+
+# Create a similar function like resonator_gain but using the ro_pulse.amplitude instead of the gain. So renaming everything to amplitude and amp
+@plot("MSR vs Frequency", plots.frequency_amplitude_msr_phase)
+def resonator_amplitude(
+    platform: AbstractPlatform,
+    qubit: int,
+    freq_width,
+    freq_step,
+    min_amp,
+    max_amp,
+    step_amp,
+    software_averages,
+    points=10,
+):
+    platform.reload_settings()
+
+    data = DataUnits(
+        name=f"data_q{qubit}",
+        quantities={"frequency": "Hz", "amplitude": "dimensionless"},
+    )
+    ro_pulse = platform.create_qubit_readout_pulse(qubit, start=0)
+    sequence = PulseSequence()
+    sequence.add(ro_pulse)
+
+    resonator_frequency = platform.characterization["single_qubit"][qubit][
+        "resonator_freq"
+    ]
+    frequency_range = (
+        np.arange(-freq_width, freq_width, freq_step)
+        + resonator_frequency
+        - (freq_width / 4)
+    )
+    amp_range = np.flip(np.arange(min_amp, max_amp, step_amp))
+    count = 0
+    for _ in range(software_averages):
+        for amp in amp_range:
+            for freq in frequency_range:
+                if count % points == 0:
+                    yield data
+                platform.ro_port[qubit].lo_frequency = freq - ro_pulse.frequency
+                ro_pulse.amplitude = amp
+                msr, phase, i, q = platform.execute_pulse_sequence(sequence)[
+                    ro_pulse.serial
+                ]
+                results = {
+                    "MSR[V]": msr,
+                    "i[V]": i,
+                    "q[V]": q,
+                    "phase[rad]": phase,
+                    "frequency[Hz]": freq,
+                    "amplitude[dimensionless]": amp,
+                }
+                data.add(results)
+                count += 1
     yield data
