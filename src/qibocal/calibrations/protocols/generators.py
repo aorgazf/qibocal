@@ -6,6 +6,8 @@ from qibo import gates, get_backend, models
 
 from qibocal.calibrations.protocols.utils import onequbit_clifford_params
 
+from qibo.gates import UnitaryChannel
+
 
 class Generator:
     """Build a circuit generator when if called generates a random circuit
@@ -54,7 +56,7 @@ class Generator:
         """
         # Initiate the empty circuit from qibo with 'self.nqubits'
         # many qubits.
-        circuit = models.Circuit(len(self.qubits))
+        circuit = models.Circuit(len(self.qubits), density_matrix=True)
         # Iterate over the sequence length.
         for _ in range(sequence_length):
             # Use the attribute to generate gates. This attribute can
@@ -160,13 +162,30 @@ class GeneratorXId(Generator):
         # the class specific generator.
         self.gate_generator = None
 
-    def __call__(self, sequence_length: list):
+        from qibocal.calibrations.protocols.fitting_methods import generate_id
+        self.id = generate_id()
+
+        self.is_unitary_noise = False
+        if kwargs.get("is_unitary_noise"):
+            self.is_unitary_noise = True
+            self.unitary_noise = kwargs.get("unitary_noise")
+            # Create a report TODO DELETE 
+            try:
+                with open(f"/home/yelyzavetavodovozova/Documents/plots/{self.id}.txt", 'a') as f:
+                    f.write("\nunitary =" + str(self.unitary_noise))
+            except FileNotFoundError:
+                print("The directory does not exist")
+
+        self.not_random = (kwargs.get("not_random") != None)
+
+    def __call__(self, sequence_length: int, inds: list = []):
         """For generating a sequence of circuits the object itself
         has to be called and the length of the sequence specified.
 
         Args:
             length (int) : How many circuits are created and put
                            together for the sequence.
+            inds (list) : Order of Xs and Ids in a sequence.
 
         Returns:
         (list): with the minimal representation of the circuit.
@@ -175,17 +194,55 @@ class GeneratorXId(Generator):
         """
         # Initiate the empty circuit from qibo with 'self.nqubits'
         # many qubits.
-        circuit = models.Circuit(len(self.qubits))
-        # Draw sequence length many zeros and ones.
-        random_ints = np.random.randint(0, 2, size=sequence_length)
+        circuit = models.Circuit(len(self.qubits), density_matrix=True)
         # There are only two gates to choose from.
         a = [gates.I(0), gates.X(0)]
-        # Get the Xs and Ids with random_ints as indices.
-        gate_lists = np.take(a, random_ints)
+
+        if self.is_unitary_noise:
+            # Create a Unitary channel
+            noise_channel = UnitaryChannel([1], [(self.qubits, self.unitary_noise)]) # self.jc_kraus_channel()
+            gate_lists = []
+            # Draw sequence length many zeros and ones.
+            random_ints = np.random.randint(0, 2, size=sequence_length)
+            for i in random_ints:
+                gate_lists.append(a[i])
+                if i:
+                    gate_lists.append(noise_channel)
+
+        elif len(inds) == 0:
+            # Draw sequence length many zeros and ones.
+            random_ints = np.random.randint(0, 2, size=sequence_length)
+            # Get the Xs and Ids with random_ints as indices.
+            gate_lists = np.take(a, random_ints)
+        else:
+            # Create a gate sequence with exact order of Xs and Ids
+            gate_lists = np.take(a, inds[:sequence_length])
         # Add gates to circuit.
         circuit.add(gate_lists)
+        # Random Pauli
         circuit.add(self.measurement)
+
         # No noise model added, for a simulation either the platform
         # introduces the errors or the error gates will be added
         # before execution.
+        
         yield circuit
+
+    def get_gate(self, is_x, qubit_number):
+        """Get Id or X gate for a qubit"""
+        if is_x:
+            return gates.X(qubit_number)
+        else:
+            return gates.I(qubit_number)
+
+    def jc_kraus_channel(self, time=1, omega0=np.pi/3):
+        sigma_minus = np.array([[0, 1], [0, 0]])
+        zeros = np.array([[1, 0], [0, 0]])
+        ones = np.array([[0, 0], [0, 1]])
+
+        K_0 = zeros + np.cos(omega0 * time /2) * ones
+        K_1 = -1j * np.sin(omega0 * time /2) * sigma_minus
+
+        # define the channel rho -> K_0 rho K_0 + K_1 rho K_1
+        res_channel = gates.KrausChannel([((0,), K_0), ((0,), K_1)])
+        return res_channel

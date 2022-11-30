@@ -6,12 +6,15 @@ from os.path import isdir, isfile
 
 import numpy as np
 from qibo import gates
-from qibo.noise import NoiseModel, PauliError
+from qibo.noise import NoiseModel, PauliError, ThermalRelaxationError, DepolarizingError
 
 from qibocal.calibrations.protocols import fitting_methods
 from qibocal.calibrations.protocols.generators import *
 from qibocal.calibrations.protocols.utils import dict_to_txt, pkl_to_list
 from qibocal.data import Data
+
+from itertools import * # temporary for getting all permutations of 0,1
+
 
 # from typing import Union
 
@@ -300,16 +303,26 @@ class Experiment:
         """Build a list out of the circuits required to run for the wanted
         experiment.
         """
-        # Use the __call__ function of the circuit generator to retrieve a
-        # random circuit 'runs' many times for each sequence length.
-        circuits_list = [
-            [next(self.circuit_generator(length)) for length in self.sequence_lengths]
-            for _ in range(self.runs)
-        ]
+        if kwargs.get("not_random"):
+            max_length = self.sequence_lengths[-1]
+            random_ints = list(product([0,1], repeat=max_length))
+            # pdb.set_trace()
+            circuits_list = [
+                [next(self.circuit_generator(length, order)) for length in self.sequence_lengths]
+                for order in random_ints
+            ] 
+        else:
+            # Use the __call__ function of the circuit generator to retrieve a
+            # random circuit 'runs' many times for each sequence length.
+            circuits_list = [
+                [next(self.circuit_generator(length)) for length in self.sequence_lengths]
+                for _ in range(self.runs)
+            ] 
         # Create an attribute.
         # TODO should that be necessary if the experiment is stored in a
         # pikle file?
         self.circuits_list = circuits_list
+        # pdb.set_trace()
         return circuits_list
 
     def build_onthefly(self, **kwargs):
@@ -338,7 +351,10 @@ class Experiment:
         Args:
             kwargs (dict):
                 'paulierror_noiseparams' = [p1, p2, p3]
+                'thermalerror_noiseparams' = [t1, t2, t, a0=0]
         """
+        # Save initial state here temporarily 
+        self.init_state = kwargs.get("init_state")
         # Initiate the outcome lists, one for the single shot samples and
         # one for the probabilities.
         self.outcome_samples, self.outcome_probabilities = [], []
@@ -351,6 +367,12 @@ class Experiment:
             # The noise should be applied with each unitary in the circuit.
             # noise.add(pauli, gates.Unitary)
             noise.add(pauli, gates.X)
+        if kwargs.get("thermalerror_noiseparams"):
+            # Insert artificial noise, namely random Pauli flips.
+            thermal = ThermalRelaxationError(*kwargs.get("thermalerror_noiseparams"))
+            noise = NoiseModel()
+            # The noise should be applied with each unitary in the circuit.
+            noise.add(thermal, gates.X)
         # Makes code easier to read.
         amount_m = len(self.sequence_lengths)
         # Loop 'runs' many times over the whole protocol.
@@ -363,17 +385,18 @@ class Experiment:
                 # the original circuit.
                 circuit = deepcopy(self.circuits_list[count_runs][count_m])
                 # For the simulation the noise has to be added to the circuit.
-                if kwargs.get("paulierror_noiseparams"):
+                if kwargs.get("paulierror_noiseparams") or kwargs.get("thermalerror_noiseparams"):
                     # Add the noise to the circuit (more like the other way
                     # around, the circuit to the noise).
                     noisy_circuit = noise.apply(circuit)
                     # Execute the noisy circuit.
                     executed = noisy_circuit(
-                        kwargs.get("init_state"), nshots=self.nshots
+                        nshots=self.nshots
+                        # kwargs.get("init_state"), nshots=self.nshots
                     )
                 else:
                     # Execute the qibo circuit without artificial noise.
-                    executed = circuit(kwargs.get("init_state"), nshots=self.nshots)
+                    executed = circuit(nshots = self.nshots)# kwargs.get("init_state"), nshots=self.nshots)
                 # FIXME The samples (zeros and ones per shot) acquisition does
                 # not work for quantum hardware yet.
                 try:
@@ -382,6 +405,7 @@ class Experiment:
                     # Append the samples.
                     samples_list.append(executed.samples())
                 except:
+                    pdb.set_trace()
                     print("Retrieving samples not possible.")
                     # pass
                 # Either way store the probabilities. Since
@@ -704,7 +728,9 @@ class Experiment:
         plt.plot(xfitted, yfitted, "--", color=colorfunc(50), label=fitlegend)
         plt.ylabel("survival probability")
         plt.xlabel("sequence length")
+        # plt.title("Thermal non-random: 0.002, 0.001, 0.0015")
         plt.legend()
+        plt.savefig(f"/home/yelyzavetavodovozova/Documents/plots/{self.circuit_generator.id}.png")
         plt.show()
 
     def crossvalidation(self, k: int, iterations: int, **kwargs):
@@ -761,6 +787,10 @@ class Experiment:
 
     def filter_sign(self):
         """ """
+        # Compute the state-dependent factor r00-r11
+        state_factor = 1
+        if self.init_state != None:
+            state_factor = np.abs(self.init_state[0]) ** 2 - np.abs(self.init_state[1]) ** 2
         amount_sequences = len(self.sequence_lengths)
         # Initiate list for filter for each sequence length and all runs.
         avg_filterlist = []
@@ -777,7 +807,7 @@ class Experiment:
                 for count_shot in range(self.nshots):
                     # This is 0 or 1.
                     outcome = self.outcome_samples[count][m][count_shot][0]
-                    filtersign += (-1) ** (m_X % 2 + outcome) / 2.0
+                    filtersign += (-1) ** (m_X % 2 + outcome) / 2.0 * state_factor
                 avg_filterlist.append(filtersign / self.nshots)
         final = np.array(avg_filterlist).reshape(self.runs, amount_sequences)
         return final

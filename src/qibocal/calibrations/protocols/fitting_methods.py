@@ -5,6 +5,10 @@ import numpy as np
 from scipy.linalg import hankel, svd
 from scipy.optimize import curve_fit
 
+def generate_id(noise = "U"): 
+    """noise = "U", "P", "T" """
+    from datetime import datetime
+    return noise + datetime.now().strftime("%H-%M")
 
 def exp1_func(x: np.ndarray, A: float, f: float, B: float) -> np.ndarray:
     """ """
@@ -50,6 +54,21 @@ def esprit(xdata, ydata, num_decays, hankel_dim=None):
     )
     # Calculate the poles/eigenvectors and space them right.
     decays = np.linalg.eigvals(spectralMatrix) * sampleRate
+
+    # estimate dimension of te environment
+    dim_env = (np.linalg.norm(spectralMatrix, 1) ** 2) / (np.linalg.norm(hankelMatrix, 'fro') ** 2)
+    print("\nDimenion of the enironment is:", dim_env, "\n")
+    svds = np.linalg.eigvals(spectralMatrix)
+    svds.sort()
+    print('singular values =\n', np.round(svds, 3))
+    # Create a report
+    try:
+        with open(f"/home/yelyzavetavodovozova/Documents/plots/{generate_id()}.txt", 'a') as f:
+            f.write("\ndim_env = " + str(dim_env))
+            f.write("\nsvds = " + str(svds))
+    except FileNotFoundError:
+        print("The directory does not exist")
+
     return decays
 
 

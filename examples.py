@@ -317,22 +317,65 @@ def test_filter_single_qubit():
     experiment.plot_scatterruns(use_probs=True)
 
 
-def test_generatorXIds():
-    def lizafunction(px, py, pz):
+def test_generatorXIds(is_random=True):
+    def pauli_decays(px, py, pz):
         return 1 - px - pz, 1 - px - py
 
+    def thermal_decay(t1, t2, t):
+        return (1 + np.exp(-t / t1)) / 2
+
     qubits = [0]
-    sequence_lengths = list(np.arange(1, 30, 1))
-    runs = 2
+    # Maximal sequence length
+    max_length = 100 if is_random else 7
+    # List of equidistant seq lengths
+    sequence_lengths = list(np.arange(1, max_length, 1))
+    # Number of runs
+    runs = 20 if is_random else 2 ** sequence_lengths[-1]
+
     generator = GeneratorXId(qubits)
+    experiment = Experiment(generator, sequence_lengths, qubits, runs=runs, nshots=int(1e3))
+    experiment.build_a_save(not_random = not is_random)
+
+
+    # Pauli noise paramters.
+    # noiseparams = [0.01, 0.05, 0.2]
+    # print(pauli_decays(*noiseparams))
+    # Inject the noise while executing.
+    # experiment.execute_a_save(paulierror_noiseparams=noiseparams)
+
+    # Thermal noise params
+    noiseparams = [0.002, 0.001, 0.0015]
+    print(thermal_decay(*noiseparams))
+    # Inject the noise while executing.
+    experiment.execute_a_save(thermalerror_noiseparams=noiseparams)
+
+    experiment.plot_scatterruns(sign=True)
+
+
+def test_generatorXIds_unitary():
+    def random_unitary_noise():
+        herm_generator = np.random.normal(size=(2, 2)) + 1j * np.random.normal(size=(2,2))
+        herm_generator = (herm_generator + herm_generator.T.conj()) / 2
+
+        from scipy.linalg import expm
+        lam = 0.3
+        return expm(1j * lam * herm_generator)
+
+    qubits = [0]
+    sequence_lengths = list(np.arange(1, 50, 1))
+    runs = 30
+    # Pauli noise paramters.
+    noiseparams = random_unitary_noise()
+    print(noiseparams)
+    # print(lizafunction(*noiseparams))
+    generator = GeneratorXId(qubits, unitary_noise=noiseparams, is_unitary_noise=True)
     experiment = Experiment(generator, sequence_lengths, qubits, runs=runs)
     experiment.build_a_save()
-    # Pauli noise paramters.
-    noiseparams = [0.01, 0.05, 0.2]
-    print(lizafunction(*noiseparams))
+    
     # Inject the noise while executing.
-    experiment.execute_a_save(paulierror_noiseparams=noiseparams)
+    experiment.execute_a_save(unitary_noise=noiseparams)# , init_state=[np.sqrt(3) / 2, np.sqrt(3) / 4 + 1j / 4])
     experiment.plot_scatterruns(sign=True)
+
 
 
 # directory = 'experiments/GeneratorXId/experiment22Nov10_132047/'
@@ -341,7 +384,8 @@ def test_generatorXIds():
 # recexperiment.plot_scatterruns(sign=True)
 
 
-test_generatorXIds()
+# test_generatorXIds(is_random=True)
+test_generatorXIds_unitary()
 # test_generators()
 # test_retrieve_from_path()
 # test_execute_and_save()
