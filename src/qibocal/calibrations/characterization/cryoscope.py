@@ -10,16 +10,16 @@ from qibocal.decorators import plot
 
 
 @plot("cryoscope_raw", plots.cryoscope_raw)
-@plot("cryoscope_norm", plots.cryoscope_norm)
-@plot("cryoscope_norm_heatmap", plots.cryoscope_norm_heatmap)
-@plot("cryoscope_fft", plots.cryoscope_fft)
-@plot("cryoscope_phase", plots.cryoscope_phase)
-@plot("cryoscope_phase_heatmap", plots.cryoscope_phase_heatmap)
-@plot("cryoscope_phase_unwrapped", plots.cryoscope_phase_unwrapped)
-@plot("cryoscope_phase_unwrapped_heatmap", plots.cryoscope_phase_unwrapped_heatmap)
-@plot("cryoscope_phase_amplitude_unwrapped_heatmap", plots.cryoscope_phase_amplitude_unwrapped_heatmap)
-@plot("cryoscope_fft_phase_unwrapped", plots.cryoscope_fft_phase_unwrapped)
-@plot("cryoscope_detuning_time", plots.cryoscope_detuning_time)
+# @plot("cryoscope_norm", plots.cryoscope_norm)
+# @plot("cryoscope_norm_heatmap", plots.cryoscope_norm_heatmap)
+# @plot("cryoscope_fft", plots.cryoscope_fft)
+# @plot("cryoscope_phase", plots.cryoscope_phase)
+# @plot("cryoscope_phase_heatmap", plots.cryoscope_phase_heatmap)
+# @plot("cryoscope_phase_unwrapped", plots.cryoscope_phase_unwrapped)
+# @plot("cryoscope_phase_unwrapped_heatmap", plots.cryoscope_phase_unwrapped_heatmap)
+# @plot("cryoscope_phase_amplitude_unwrapped_heatmap", plots.cryoscope_phase_amplitude_unwrapped_heatmap)
+# @plot("cryoscope_fft_phase_unwrapped", plots.cryoscope_fft_phase_unwrapped)
+# @plot("cryoscope_detuning_time", plots.cryoscope_detuning_time)
 def cryoscope(
     platform: AbstractPlatform,
     qubit: int,
@@ -39,12 +39,12 @@ def cryoscope(
     # The flux pulse detunes the qubit and results in a rotation around the Z axis = atan(MY/MX)
 
     platform.reload_settings()
-    mean_gnd = complex(
-        platform.characterization["single_qubit"][qubit]["mean_gnd_states"]
-    )
-    mean_exc = complex(
-        platform.characterization["single_qubit"][qubit]["mean_exc_states"]
-    )
+    # mean_gnd = complex(
+    #     platform.characterization["single_qubit"][qubit]["mean_gnd_states"]
+    # )
+    # mean_exc = complex(
+    #     platform.characterization["single_qubit"][qubit]["mean_exc_states"]
+    # )
 
     # start at |+> by rotating Ry(pi/2)
     initial_RY90_pulse = platform.create_RX90_pulse(
@@ -86,7 +86,7 @@ def cryoscope(
         quantities={
             "flux_pulse_duration": "ns",
             "flux_pulse_amplitude": "dimensionless",
-            "prob": "dimensionless",
+            #"prob": "dimensionless",
         },
         options=["component"],
     )
@@ -112,9 +112,7 @@ def cryoscope(
                 "i[V]": MX_results[2],
                 "q[V]": MX_results[3],
                 "phase[rad]": MX_results[1],
-                "prob[dimensionless]": iq_to_prob(
-                    MX_results[2], MX_results[3], mean_gnd, mean_exc
-                ),
+                #"prob[dimensionless]": iq_to_prob(MX_results[2], MX_results[3], mean_gnd, mean_exc),
                 "component": MX_tag,
                 "flux_pulse_duration[ns]": duration,
                 "flux_pulse_amplitude[dimensionless]": amplitude,
@@ -127,9 +125,9 @@ def cryoscope(
                 "i[V]": MY_results[2],
                 "q[V]": MY_results[3],
                 "phase[rad]": MY_results[1],
-                "prob[dimensionless]": iq_to_prob(
-                    MY_results[2], MY_results[3], mean_gnd, mean_exc
-                ),
+                # "prob[dimensionless]": iq_to_prob(
+                #     MY_results[2], MY_results[3], mean_gnd, mean_exc
+                # ),
                 "component": MY_tag,
                 "flux_pulse_duration[ns]": duration,
                 "flux_pulse_amplitude[dimensionless]": amplitude,
