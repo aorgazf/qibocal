@@ -29,6 +29,7 @@ def cryoscope(
     flux_pulse_amplitude_start,
     flux_pulse_amplitude_end,
     flux_pulse_amplitude_step,
+    flux_buffer,
     points=10,
 ):
     # 1) from state |0> apply Ry(pi/2) to state |+>,
@@ -63,12 +64,12 @@ def cryoscope(
 
     # rotate around the X asis Rx(-pi/2) to meassure Y component
     RX90_pulse = platform.create_RX90_pulse(
-        qubit, start=flux_pulse.se_finish, relative_phase=np.pi
+        qubit, start=flux_pulse.se_finish + flux_buffer, relative_phase=np.pi
     )
 
     # rotate around the Y asis Ry(pi/2) to meassure X component
     RY90_pulse = platform.create_RX90_pulse(
-        qubit, start=flux_pulse.se_finish, relative_phase=np.pi / 2
+        qubit, start=flux_pulse.se_finish + flux_buffer, relative_phase=np.pi / 2
     )
 
     # add ro pulse at the end of each sequence

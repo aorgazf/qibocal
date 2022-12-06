@@ -177,4 +177,5 @@ actions:
     flux_pulse_amplitude_start: 0
     flux_pulse_amplitude_end: 0.5
     flux_pulse_amplitude_step: 0.001
+    flux_buffer: 50 #flux pulse time of flight 
     points: 1
