@@ -250,6 +250,7 @@ def resonator_spectroscopy_flux(
                 data.add(results)
                 count += 1
 
+    platform.qf_port[fluxline].current = 0
     yield data
     # TODO: automatically extract the sweet spot current
     # TODO: add a method to generate the matrix

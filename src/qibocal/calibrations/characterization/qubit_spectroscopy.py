@@ -256,7 +256,7 @@ def qubit_spectroscopy_flux_track(
                 # TODO: implement normalization
                 data.add(results)
                 count += 1
-
+    platform.qf_port[qubit].current = sweetspot
     yield data
 
 

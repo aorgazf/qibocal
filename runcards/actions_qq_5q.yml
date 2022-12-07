@@ -60,12 +60,12 @@ actions:
   #   software_averages: 1
   #   points: 10
 
-  measure_f12:
-    offset_start: 0
-    offset_end: 400.e+6
-    offset_step: 1.e+6
-    software_averages: 1
-    points: 1
+  # measure_f12:
+  #   offset_start: 0
+  #   offset_end: 400.e+6
+  #   offset_step: 1.e+6
+  #   software_averages: 1
+  #   points: 1
 
   # qubit_spectroscopy_flux:
   #   freq_width: 50_000_000
@@ -165,3 +165,15 @@ actions:
   #   beta_end: 1
   #   beta_step: 0.01
   #   points: 1
+
+  amplitude_balance_cz:
+    points: 1
+    positive_amplitude_start: 0.0
+    positive_amplitude_end: 1.0
+    positive_amplitude_step: 0.1
+    snz_ratio_amplitude_start: 0.0
+    snz_ratio_amplitude_end: 1.0
+    snz_ratio_amplitude_step: 0.1
+    detuning_start: 0
+    detuning_end: 180
+    detuning_step: 1
