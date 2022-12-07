@@ -335,8 +335,8 @@ def test_generatorXIds(is_random=True):
     generator = GeneratorXId(qubits)
     experiment = Experiment(generator, sequence_lengths, qubits, runs=runs, nshots=int(1e3))
     experiment.build_a_save(not_random = not is_random)
-
-
+    
+    
     # Pauli noise paramters.
     # noiseparams = [0.01, 0.05, 0.2]
     # print(pauli_decays(*noiseparams))

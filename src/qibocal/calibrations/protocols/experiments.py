@@ -710,6 +710,7 @@ class Experiment:
         else:
             ydata_scattered = self.filter_single_qubit(averaged=False)
             fitting_func = fitting_methods.fit_exp2_func
+        plt.figure(0)
         plt.scatter(
             xdata_scattered,
             ydata_scattered.flatten(),
@@ -725,12 +726,13 @@ class Experiment:
         plt.scatter(xdata, ydata, marker=5, label="averaged")
         xfitted, yfitted, popt = fitting_func(xdata, ydata)
         fitlegend = ", ".join(format(f, ".3f") for f in popt)
+        plt.figure(0)
         plt.plot(xfitted, yfitted, "--", color=colorfunc(50), label=fitlegend)
         plt.ylabel("survival probability")
         plt.xlabel("sequence length")
         # plt.title("Thermal non-random: 0.002, 0.001, 0.0015")
         plt.legend()
-        plt.savefig(f"/home/yelyzavetavodovozova/Documents/plots/{self.circuit_generator.id}.png")
+        plt.savefig(f"/home/users/yelyzaveta.vodovozova/qibocal/src/qibocal/calibrations/protocols/plots/{self.circuit_generator.id}.png")
         plt.show()
 
     def crossvalidation(self, k: int, iterations: int, **kwargs):
