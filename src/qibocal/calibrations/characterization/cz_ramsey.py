@@ -12,7 +12,7 @@ from qibocal.decorators import plot
 from qibocal.fitting import fit_amplitude_balance_cz
 
 
-@plot("snz_detuning", plots.snz_detuning)
+@plot("snz_detuning", plots.amplitude_balance_cz)
 def amplitude_balance_cz(
     platform: AbstractPlatform,
     qubit: int,

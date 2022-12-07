@@ -29,7 +29,7 @@ def fit_amplitude_balance_cz(data):
             "phase_difference": "degree",
             "leakage": "dimensionless",
         },
-        options=["controlqubit", "targetqubit", "ON_OFF"],
+        options=["controlqubit", "targetqubit"],
     )
 
     # Extracting unique values
@@ -64,54 +64,31 @@ def fit_amplitude_balance_cz(data):
         for ratio in ratio_unique:
             for amp in amplitude_unique:
                 # Normalizing between -1 and 1
-                prob_dict["target"]["ON"][
-                    (amplitude_dict["target"]["ON"] == amp)
-                    & (ratio_dict["target"]["ON"] == ratio)
-                ] = prob_dict["target"]["ON"][
-                    (amplitude_dict["target"]["ON"] == amp)
-                    & (ratio_dict["target"]["ON"] == ratio)
-                ] - np.min(
-                    prob_dict["target"]["ON"][
-                        (amplitude_dict["target"]["ON"] == amp)
-                        & (ratio_dict["target"]["ON"] == ratio)
-                    ]
-                )
-                prob_dict["target"]["ON"][
-                    (amplitude_dict["target"]["ON"] == amp)
-                    & (ratio_dict["target"]["ON"] == ratio)
-                ] = prob_dict["target"]["ON"][
-                    (amplitude_dict["target"]["ON"] == amp)
-                    & (ratio_dict["target"]["ON"] == ratio)
-                ] / np.max(
-                    prob_dict["target"]["ON"][
-                        (amplitude_dict["target"]["ON"] == amp)
-                        & (ratio_dict["target"]["ON"] == ratio)
-                    ]
-                )
-                prob_dict["target"]["OFF"][
-                    (amplitude_dict["target"]["OFF"] == amp)
-                    & (ratio_dict["target"]["OFF"] == ratio)
-                ] = prob_dict["target"]["OFF"][
-                    (amplitude_dict["target"]["OFF"] == amp)
-                    & (ratio_dict["target"]["OFF"] == ratio)
-                ] - np.min(
-                    prob_dict["target"]["OFF"][
-                        (amplitude_dict["target"]["OFF"] == amp)
-                        & (ratio_dict["target"]["OFF"] == ratio)
-                    ]
-                )
-                prob_dict["target"]["OFF"][
-                    (amplitude_dict["target"]["OFF"] == amp)
-                    & (ratio_dict["target"]["OFF"] == ratio)
-                ] = prob_dict["target"]["OFF"][
-                    (amplitude_dict["target"]["OFF"] == amp)
-                    & (ratio_dict["target"]["OFF"] == ratio)
-                ] / np.max(
-                    prob_dict["target"]["OFF"][
-                        (amplitude_dict["target"]["OFF"] == amp)
-                        & (ratio_dict["target"]["OFF"] == ratio)
-                    ]
-                )
+                for ON_OFF in ["ON", "OFF"]:
+                    prob_dict["target"][ON_OFF][
+                        (amplitude_dict["target"][ON_OFF] == amp)
+                        & (ratio_dict["target"][ON_OFF] == ratio)
+                    ] = prob_dict["target"][ON_OFF][
+                        (amplitude_dict["target"][ON_OFF] == amp)
+                        & (ratio_dict["target"][ON_OFF] == ratio)
+                    ] - np.min(
+                        prob_dict["target"][ON_OFF][
+                            (amplitude_dict["target"][ON_OFF] == amp)
+                            & (ratio_dict["target"][ON_OFF] == ratio)
+                        ]
+                    )
+                    prob_dict["target"][ON_OFF][
+                        (amplitude_dict["target"][ON_OFF] == amp)
+                        & (ratio_dict["target"][ON_OFF] == ratio)
+                    ] = prob_dict["target"][ON_OFF][
+                        (amplitude_dict["target"][ON_OFF] == amp)
+                        & (ratio_dict["target"][ON_OFF] == ratio)
+                    ] / np.max(
+                        prob_dict["target"][ON_OFF][
+                            (amplitude_dict["target"][ON_OFF] == amp)
+                            & (ratio_dict["target"][ON_OFF] == ratio)
+                        ]
+                    )
 
                 # Fitting the data
                 try:
@@ -154,7 +131,10 @@ def fit_amplitude_balance_cz(data):
                                 (amplitude_dict["target"]["OFF"] == amp)
                                 & (ratio_dict["target"]["OFF"] == ratio)
                             ]
-                        ),
+                        )
+                        / 2,
+                        "controlqubit": q_control,
+                        "targetqubit": q_target,
                     }
                 except:
                     results = {
@@ -164,6 +144,8 @@ def fit_amplitude_balance_cz(data):
                         "initial_phase_OFF[degree]": np.nan,
                         "phase_difference[degree]": np.nan,
                         "leakage[dimensionless]": np.nan,
+                        "controlqubit": np.nan,
+                        "targetqubit": np.nan,
                     }
 
                 data_fit.add(results)
