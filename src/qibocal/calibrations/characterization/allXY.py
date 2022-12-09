@@ -15,6 +15,7 @@ gatelist = [
     ["RY(pi)", "RY(pi)"],
     ["RX(pi)", "RY(pi)"],
     ["RY(pi)", "RX(pi)"],
+
     ["RX(pi/2)", "I"],
     ["RY(pi/2)", "I"],
     ["RX(pi/2)", "RY(pi/2)"],
@@ -27,6 +28,7 @@ gatelist = [
     ["RX(pi)", "RX(pi/2)"],
     ["RY(pi/2)", "RY(pi)"],
     ["RY(pi)", "RY(pi/2)"],
+    
     ["RX(pi)", "I"],
     ["RY(pi)", "I"],
     ["RX(pi/2)", "RX(pi/2)"],
@@ -67,20 +69,19 @@ def allXY(
                 platform, gates, qubit, beta_param
             )
             seq.add(ro_pulse)
-            msr, phase, i, q = platform.execute_pulse_sequence(seq, nshots=2048)[
+            seq.plot('plot.png')
+            print(gates, seq)
+            prob = 1 - platform.execute_pulse_sequence(seq, nshots=2048)["probability"][
                 ro_pulse.serial
             ]
 
-            prob = np.abs(msr * 1e6 - state1_voltage) / np.abs(
-                state1_voltage - state0_voltage
-            )
-            prob = (2 * prob) - 1
+            # prob = np.abs(msr * 1e6 - state1_voltage) / np.abs(
+            #     state1_voltage - state0_voltage
+            # )
+            # prob = (2 * prob) - 1
+ 
 
             results = {
-                "MSR[V]": msr,
-                "i[V]": i,
-                "q[V]": q,
-                "phase[rad]": phase,
                 "probability[dimensionless]": prob,
                 "gateNumber[dimensionless]": gateNumber,
             }
@@ -242,7 +243,6 @@ def _get_sequence_from_gate_pair(platform: AbstractPlatform, gates, qubit, beta_
 
     sequence = PulseSequence()
 
-    sequenceDuration = 0
     pulse_start = 0
 
     for gate in gates:
@@ -314,10 +314,9 @@ def _get_sequence_from_gate_pair(platform: AbstractPlatform, gates, qubit, beta_
                 )
             sequence.add(RY90_pulse)
 
-        sequenceDuration = sequenceDuration + pulse_duration
-        pulse_start = pulse_duration
+        pulse_start += pulse_duration
 
     # RO pulse starting just after pair of gates
-    ro_pulse = platform.create_qubit_readout_pulse(qubit, start=sequenceDuration + 4)
+    ro_pulse = platform.create_qubit_readout_pulse(qubit, start=pulse_start)
 
     return sequence, ro_pulse

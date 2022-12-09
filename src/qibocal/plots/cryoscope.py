@@ -67,6 +67,49 @@ def cryoscope_raw(folder, routine, qubit, format):
     )
     return figs["raw"]
 
+# For cryoscope
+def cryoscope_delays(folder, routine, qubit, format):
+    data = DataUnits.load_data(folder, "data", routine, format, f"data_q{qubit}")
+    import numpy as np
+
+    MX_tag = "MX"
+    MY_tag = "MY"
+
+    amplitude = data.get_values("flux_pulse_amplitude", "dimensionless")
+    duration = data.get_values("flux_pulse_duration", "ns")
+    flux_pulse_duration = duration[data.df["component"] == MY_tag].to_numpy()
+    flux_pulse_amplitude = amplitude[data.df["component"] == MY_tag].to_numpy()
+    amplitude_unique = flux_pulse_amplitude[flux_pulse_duration == flux_pulse_duration[0]]
+    duration_unique = flux_pulse_duration[flux_pulse_amplitude == flux_pulse_amplitude[0]]
+
+    # Making figure
+    figs = {}
+    figs["raw"] = make_subplots(
+        rows=1,
+        cols=1,
+        horizontal_spacing=0.1,
+        vertical_spacing=0.2,
+    )
+    for amp in amplitude_unique:
+        figs["raw"].add_trace(
+            go.Scatter(
+                x=data.get_values("flux_start", "ns")[data.df["flux_pulse_amplitude"] == amp][data.df["component"] == MX_tag].to_numpy(),
+                y=data.get_values("prob", "dimensionless")[data.df["flux_pulse_amplitude"] == amp][data.df["component"] == MX_tag].to_numpy(),
+                name=f"<X> | A = {amp:.3f}"
+            ),
+            row=1,
+            col=1,
+        )
+
+    figs["raw"].update_layout(
+        xaxis_title="Flux start time (ns)",
+        yaxis_title="MSR (prob)",
+        title=f"Raw data",
+    )
+    return figs["raw"]
+
+
+
 def cryoscope_norm(folder, routine, qubit, format):
     data = DataUnits.load_data(folder, "data", routine, format, f"data_q{qubit}")
     import numpy as np
@@ -226,7 +269,6 @@ def cryoscope_fft(folder, routine, qubit, format):
 
     signal = []
     signal_fft = []
-    fft_x = np.fft.fftfreq(n=duration_unique.shape[0], d=4e-9) # X axis
 
     for amp in amplitude_unique:
         re = data.get_values("prob", "dimensionless")[data.df["flux_pulse_amplitude"] == amp][data.df["component"] == MX_tag].to_numpy()
@@ -245,6 +287,7 @@ def cryoscope_fft(folder, routine, qubit, format):
     signal = np.array(signal,dtype=np.complex128)
     signal_fft = np.array(signal_fft,dtype=np.complex128)
 
+    fft_x = np.fft.fftfreq(n=duration_unique.shape[0], d=4e-9) # X axis
    # print(f"{signal_fft.shape}")
     # print(f"{fft_x.shape}")
     # print(f"{amplitude_unique.shape}")
@@ -256,7 +299,7 @@ def cryoscope_fft(folder, routine, qubit, format):
 
     # demod_data circle
     global_title = "FFT data"
-    title_x = "Frequency (GHz)"
+    title_x = "Detunning (GHz)"
     title_y = "Amplitudes"
     figs["norm"].add_trace(
         go.Heatmap(
@@ -336,7 +379,7 @@ def cryoscope_phase(folder, routine, qubit, format):
         # Di Carlo has smooth here!!!
 
         # Unwrap phase        
-        phase = np.arctan2(this_data.real, this_data.imag)
+        phase = np.arctan2(this_data.imag, this_data.real)
 
         # Phase vs. Time
         global_title = "Phase vs. Time"
@@ -462,7 +505,7 @@ def cryoscope_phase_unwrapped(folder, routine, qubit, format):
         signal.append(this_data)
 
         # Unwrap phase        
-        phase = np.arctan2(this_data.real, this_data.imag)
+        phase = np.arctan2(this_data.imag, this_data.real)
         phase_unwrapped = np.unwrap(phase)
 
         # Phase vs. Time
@@ -686,7 +729,6 @@ def cryoscope_fft_phase_unwrapped(folder, routine, qubit, format):
     )
     return figs["norm"]
 
-
 def cryoscope_detuning_time(folder, routine, qubit, format):
     data = DataUnits.load_data(folder, "data", routine, format, f"data_q{qubit}")
     import numpy as np
@@ -710,7 +752,7 @@ def cryoscope_detuning_time(folder, routine, qubit, format):
     figs = {}
     figs["norm"] = make_subplots(
         rows=1,
-        cols=2,
+        cols=1,
         horizontal_spacing=0.1,
         vertical_spacing=0.2,
     )
@@ -720,6 +762,7 @@ def cryoscope_detuning_time(folder, routine, qubit, format):
     derivative_window_length = 7 / sampling_rate
     derivative_window_size = max(3, int(derivative_window_length * sampling_rate))
     derivative_window_size += (derivative_window_size + 1) % 2
+    derivative_window_size = 3
     derivative_order = 2
     nyquist_order=0
 
@@ -742,10 +785,11 @@ def cryoscope_detuning_time(folder, routine, qubit, format):
         #signal_fft = np.fft.fft(this_data-np.mean(this_data))
 
         # Unwrap phase        
-        phase = np.arctan2(this_data.real, this_data.imag)
+        phase = np.arctan2(this_data.imag, this_data.real)
         # phase = np.arctan2(signal_fft.real, signal_fft.imag)
         phase_unwrapped = np.unwrap(phase) #unwrapped fft signal
-        phase_unwrapped = np.unwrap(phase, axis=0) #unwrapped phase along amplitude
+        
+        # phase_unwrapped = np.unwrap(phase, axis=0) #unwrapped phase along amplitude
         # phase_unwrapped = np.unwrap(phase, axis=1) #unwrapped phase along duration
         
 
@@ -755,20 +799,20 @@ def cryoscope_detuning_time(folder, routine, qubit, format):
         # phase = phase_unwrapped_data
 
         # Di Carlo method
-        # detuning = ss.savgol_filter(
-        #     phase_unwrapped / (2 * np.pi),
-        #     window_length = derivative_window_size,
-        #     polyorder = derivative_order,
-        #     deriv=1) * sampling_rate * 1e9
+        detuning = ss.savgol_filter(
+            phase_unwrapped / (2 * np.pi),
+            window_length = derivative_window_size,
+            polyorder = derivative_order,
+            deriv=1) * sampling_rate * 1e9
 
         # nyquist_order = 0    
         # detuning = get_real_detuning(detuning, demod_freq, sampling_rate, nyquist_order)
 
         # Maxime method
-        dt = np.diff(duration_unique) * 1e-9
-        dphi_dt_unwrap = np.abs(np.diff(phase_unwrapped) / dt)
-        detuning = dphi_dt_unwrap / (2 * np.pi)
-        detuning_mean.append(np.mean(detuning))
+        # dt = np.diff(duration_unique) * 1e-9
+        # dphi_dt_unwrap = np.abs(np.diff(phase_unwrapped) / dt)
+        # detuning = dphi_dt_unwrap / (2 * np.pi)
+        # detuning_mean.append(np.mean(detuning))
 
         # Detunning vs. Time
         global_title = "Detuning vs. Time"
@@ -784,26 +828,10 @@ def cryoscope_detuning_time(folder, routine, qubit, format):
             col=1,
         )
     
-    # Detunning vs. Time
-    global_title = "Detuning vs. amplitude"
-    title_x2 = "Amplitude"
-    title_y2 = "Detunning" 
-    figs["norm"].add_trace(
-        go.Scatter(
-            x=amplitude_unique,
-            y=detuning_mean,
-            name=f"A = {amp:.3f}",
-        ),
-        row=1,
-        col=2,
-    )
-
 
     figs["norm"].update_layout(
         xaxis_title=title_x,
         yaxis_title=title_y,
-        xaxis2_title=title_x2,
-        yaxis2_title=title_y2,
         title=f"{global_title}",
     )
     return figs["norm"]
