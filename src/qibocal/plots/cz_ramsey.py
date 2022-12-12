@@ -26,7 +26,7 @@ def amplitude_balance_cz(folder, routine, qubit, format):
         fig (plotly.graph_objects.Figure): The figure.
     """
     try:
-        data = DataUnits.load_data(folder, routine, format, f"fit")
+        data_fit = DataUnits.load_data(folder, routine, format, f"fit")
     except:
         data_fit = DataUnits(
             name=f"fit",
@@ -43,7 +43,10 @@ def amplitude_balance_cz(folder, routine, qubit, format):
 
     combinations = np.unique(
         np.vstack(
-            (data.df["targetqubit"].to_numpy(), data.df["controlqubit"].to_numpy())
+            (
+                data_fit.df["targetqubit"].to_numpy(),
+                data_fit.df["controlqubit"].to_numpy(),
+            )
         ).transpose(),
         axis=0,
     )
@@ -58,23 +61,118 @@ def amplitude_balance_cz(folder, routine, qubit, format):
         q_control = comb[1]
         fig.add_trace(
             go.Heatmap(
-                z=data.get_values("initial_phase_ON", "degree").df[
-                    (data.df["controlqubit"] == q_control)
-                    & (data.df["targetqubit"] == q_target)
+                z=data_fit.get_values("initial_phase_ON", "degree").df[
+                    (data_fit.df["controlqubit"] == q_control)
+                    & (data_fit.df["targetqubit"] == q_target)
                 ],
-                x=data.get_values("flux_pulse_amplitude", "dimensionless").df[
-                    (data.df["controlqubit"] == q_control)
-                    & (data.df["targetqubit"] == q_target)
+                x=data_fit.get_values("flux_pulse_amplitude", "dimensionless").df[
+                    (data_fit.df["controlqubit"] == q_control)
+                    & (data_fit.df["targetqubit"] == q_target)
                 ],
-                y=data.get_values("flux_pulse_ratio", "dimensionless").df[
-                    (data.df["controlqubit"] == q_control)
-                    & (data.df["targetqubit"] == q_target)
+                y=data_fit.get_values("flux_pulse_ratio", "dimensionless").df[
+                    (data_fit.df["controlqubit"] == q_control)
+                    & (data_fit.df["targetqubit"] == q_target)
                 ],
                 name=f"Q{q_control} Q{q_target}",
             ),
             row=i,
             col=1,
         )
+    return fig
+
+
+def duration_rectangular(folder, routine, qubit, format):
+    r"""
+    Plotting function for the duration of the rectangular pulse.
+
+    Args:
+        folder (str): The folder where the data is stored.
+        routine (str): The routine used to generate the data.
+        qubit (int): The qubit to plot.
+        format (str): The format of the data.
+
+    Returns:
+        fig (plotly.graph_objects.Figure): The figure.
+    """
+    try:
+        data = DataUnits.load_data(folder, routine, format, f"data")
+    except:
+        data = DataUnits(
+            name=f"data",
+            quantities={
+                "flux_pulse_duration": "ns",
+                "prob": "dimensionless",
+                "detuning": "degree",
+            },
+            options=["controlqubit", "targetqubit", "result_qubit"],
+        )
+    combinations = np.unique(
+        np.vstack(
+            (data.df["targetqubit"].to_numpy(), data.df["controlqubit"].to_numpy())
+        ).transpose(),
+        axis=0,
+    )
+
+    fig = make_subplots(
+        cols=2,
+        rows=len(combinations),
+    )
+
+    for i, comb in enumerate(combinations):
+        q_target = comb[0]
+        q_control = comb[1]
+        for dur in pd.unique(data.df["flux_pulse_duration"]):
+            for state in ["ON", "OFF"]:
+                fig.add_trace(
+                    go.Scatter(
+                        x=data.get_values("detuning", "degree")[
+                            (data.df["controlqubit"] == q_control)
+                            & (data.df["targetqubit"] == q_target)
+                            & (data.df["flux_pulse_duration"] == dur)
+                            & (data.df["result_qubit"] == q_target)
+                            & (data.df["ON_OFF"] == state)
+                        ],
+                        y=data.get_values("prob", "dimensionless")[
+                            (data.df["controlqubit"] == q_control)
+                            & (data.df["targetqubit"] == q_target)
+                            & (data.df["flux_pulse_duration"] == dur)
+                            & (data.df["result_qubit"] == q_target)
+                            & (data.df["ON_OFF"] == state)
+                        ],
+                        name=f"Q{q_target} {dur}",
+                    ),
+                    row=i + 1,
+                    col=1,
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=data.get_values("detuning", "degree")[
+                            (data.df["controlqubit"] == q_control)
+                            & (data.df["targetqubit"] == q_target)
+                            & (data.df["flux_pulse_duration"] == dur)
+                            & (data.df["result_qubit"] == q_control)
+                            & (data.df["ON_OFF"] == state)
+                        ],
+                        y=data.get_values("prob", "dimensionless")[
+                            (data.df["controlqubit"] == q_control)
+                            & (data.df["targetqubit"] == q_target)
+                            & (data.df["flux_pulse_duration"] == dur)
+                            & (data.df["result_qubit"] == q_control)
+                            & (data.df["ON_OFF"] == state)
+                        ],
+                        name=f"Q{q_control} {dur} {state}",
+                    ),
+                    row=i + 1,
+                    col=2,
+                )
+
+    fig.update_layout(
+        showlegend=True,
+        uirevision="0",  # ``uirevision`` allows zooming while live plotting
+        xaxis_title="Detuning (degree)",
+        yaxis_title="Probability",
+        width=1000,
+    )
     return fig
 
 

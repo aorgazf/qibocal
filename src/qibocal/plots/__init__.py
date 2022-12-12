@@ -1,6 +1,7 @@
 from qibocal.plots.allXY import *
 from qibocal.plots.calibrate_qubit_states import *
 from qibocal.plots.cryoscope import *
+from qibocal.plots.cz import *
 from qibocal.plots.cz_ramsey import *
 from qibocal.plots.flipping import *
 from qibocal.plots.higher_transition import *

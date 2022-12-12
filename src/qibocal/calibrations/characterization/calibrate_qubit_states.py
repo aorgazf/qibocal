@@ -80,6 +80,9 @@ def calibrate_qubit_states(
         },
     )
 
+    iq_exc = np.array(iq_exc)
+    iq_gnd = np.array(iq_gnd)
+
     iq_mean_exc = np.mean(iq_exc)
     iq_mean_gnd = np.mean(iq_gnd)
     origin = iq_mean_gnd
@@ -88,8 +91,8 @@ def calibrate_qubit_states(
     iq_exc_translated = iq_exc - origin
     rotation_angle = np.angle(np.mean(iq_exc_translated))
 
-    iq_exc_rotated = iq_exc_translated * np.exp(-1j * rotation_angle) + origin
-    iq_gnd_rotated = iq_gnd_translated * np.exp(-1j * rotation_angle) + origin
+    iq_exc_rotated = iq_exc * np.exp(-1j * rotation_angle)
+    iq_gnd_rotated = iq_gnd * np.exp(-1j * rotation_angle)
 
     real_values_exc = iq_exc_rotated.real
     real_values_gnd = iq_gnd_rotated.real
@@ -118,7 +121,7 @@ def calibrate_qubit_states(
     # assignment_fidelity = 1/2 + (cum_distribution_exc[argmax] - cum_distribution_gnd[argmax])/nshots/2
 
     results = {
-        "rotation_angle[dimensionless]": (rotation_angle * 360 / (2 * np.pi))
+        "rotation_angle[dimensionless]": (-rotation_angle * 360 / (2 * np.pi))
         % 360,  # in degrees
         "threshold[V]": threshold,
         "fidelity[dimensionless]": fidelity,
@@ -160,7 +163,7 @@ def calibrate_qubit_states_binning(
         "phase[rad]": phase,
         "iteration[dimensionless]": np.arange(nshots),
     }
-    data_exc.set(results)
+    data_exc.load_data_from_dict(results)
     yield data_exc
 
     gnd_sequence = PulseSequence()
@@ -181,7 +184,7 @@ def calibrate_qubit_states_binning(
         "phase[rad]": phase,
         "iteration[dimensionless]": np.arange(nshots),
     }
-    data_gnd.set(results)
+    data_gnd.load_data_from_dict(results)
     yield data_gnd
 
     parameters = DataUnits(
@@ -202,8 +205,8 @@ def calibrate_qubit_states_binning(
     iq_exc_translated = iq_exc - origin
     rotation_angle = np.angle(np.mean(iq_exc_translated))
 
-    iq_exc_rotated = iq_exc_translated * np.exp(-1j * rotation_angle) + origin
-    iq_gnd_rotated = iq_gnd_translated * np.exp(-1j * rotation_angle) + origin
+    iq_exc_rotated = iq_exc * np.exp(-1j * rotation_angle)
+    iq_gnd_rotated = iq_gnd * np.exp(-1j * rotation_angle)
 
     real_values_exc = iq_exc_rotated.real
     real_values_gnd = iq_gnd_rotated.real
@@ -232,7 +235,7 @@ def calibrate_qubit_states_binning(
     # assignment_fidelity = 1/2 + (cum_distribution_exc[argmax] - cum_distribution_gnd[argmax])/nshots/2
 
     results = {
-        "rotation_angle[dimensionless]": (rotation_angle * 360 / (2 * np.pi))
+        "rotation_angle[dimensionless]": (-rotation_angle * 360 / (2 * np.pi))
         % 360,  # in degrees
         "threshold[V]": threshold,
         "fidelity[dimensionless]": fidelity,
