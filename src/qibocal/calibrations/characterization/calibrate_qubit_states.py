@@ -152,7 +152,7 @@ def calibrate_qubit_states_binning(
         name=f"data_exc_q{qubit}", quantities={"iteration": "dimensionless"}
     )
     msr, phase, i, q = platform.execute_pulse_sequence(exc_sequence, nshots)[
-        "binned_integrated"
+        "demodulated_integrated_binned"
     ][ro_pulse.serial]
 
     iq_exc = i + 1j * q
@@ -173,7 +173,7 @@ def calibrate_qubit_states_binning(
         name=f"data_gnd_q{qubit}", quantities={"iteration": "dimensionless"}
     )
     msr, phase, i, q = platform.execute_pulse_sequence(gnd_sequence, nshots)[
-        "binned_integrated"
+        "demodulated_integrated_binned"
     ][ro_pulse.serial]
 
     iq_gnd = i + 1j * q
