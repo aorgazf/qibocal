@@ -1,6 +1,6 @@
 import numpy as np
 from qibolab.platforms.abstract import AbstractPlatform
-from qibolab.pulses import SNZ, FluxPulse, Pulse, PulseSequence, PulseType, Rectangular
+from qibolab.pulses import FluxPulse, Pulse, PulseSequence, PulseType, Rectangular
 
 from qibocal import plots
 from qibocal.calibrations.characterization.utils import (
@@ -150,20 +150,12 @@ def amplitude_balance_cz(
             q_target, start=0, relative_phase=0
         )
         tp = 20
-        flux_pulse = FluxPulse(
+        flux_pulse = platform.create_CZ_pulse(
+            [q_target, qubit_control[i]],
             start=initial_RX90_pulse.se_finish + 8,
-            duration=2
-            * tp,  # sweep to produce oscillations [300 to 400ns] in steps od 1ns? or 4?
-            amplitude=positive_amplitude_start,  # fix for each run
-            relative_phase=0,
-            shape=SNZ(
-                tp, pos_neg_ratio=snz_ratio_amplitude_start
-            ),  # should be rectangular, but it gets distorted
-            channel=platform.qubit_channel_map[q_target][2],
-            qubit=q_target,
         )
         RX90_pulse = platform.create_RX90_pulse(
-            q_target, start=flux_pulse.se_finish + 8, relative_phase=0
+            q_target, start=flux_pulse.finish + 8, relative_phase=0
         )
         ro_pulse_target = platform.create_qubit_readout_pulse(
             q_target, start=RX90_pulse.se_finish
@@ -212,7 +204,8 @@ def amplitude_balance_cz(
                 if count % points == 0 and count > 4:
                     yield data
                     yield fit_amplitude_balance_cz(data)
-                flux_pulse.shape = SNZ(tp, pos_neg_ratio=ratio)
+                flux_pulse[0].amplitude = amplitude
+                flux_pulse[1].amplitude = amplitude * ratio
 
                 for det in detuning:
                     RX90_pulse.relative_phase = np.deg2rad(det)

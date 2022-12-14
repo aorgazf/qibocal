@@ -56,6 +56,7 @@ def exc_gnd(folder, routine, qubit, format):
     q_mean_exc = q_exc.mean()
     iq_mean_exc = complex(i_mean_exc, q_mean_exc)
     mod_iq_exc = abs(iq_mean_exc) * 1e6
+    print(f"exc {iq_mean_exc}")
 
     fig.add_trace(
         go.Scatter(
@@ -76,6 +77,7 @@ def exc_gnd(folder, routine, qubit, format):
     q_mean_gnd = q_gnd.mean()
     iq_mean_gnd = complex(i_mean_gnd, q_mean_gnd)
     mod_iq_gnd = abs(iq_mean_gnd) * 1e6
+    print(f"gnd {iq_mean_gnd}")
 
     fig.add_trace(
         go.Scatter(
