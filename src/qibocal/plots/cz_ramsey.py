@@ -40,7 +40,7 @@ def amplitude_balance_cz(folder, routine, qubit, format):
             },
             options=["controlqubit", "targetqubit"],
         )
-    print(data_fit.df["targetqubit"].to_numpy())
+
     combinations = np.unique(
         np.vstack(
             (

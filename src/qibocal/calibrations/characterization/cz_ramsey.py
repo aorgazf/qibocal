@@ -173,24 +173,24 @@ def amplitude_balance_cz(
 
         # Mean and excited states
         mean_gnd = {
-            str(qubit_target[i]): complex(
+            qubit_target[i]: complex(
                 platform.characterization["single_qubit"][qubit_target[i]][
                     "mean_gnd_states"
                 ]
             ),
-            str(qubit_control[i]): complex(
+            qubit_control[i]: complex(
                 platform.characterization["single_qubit"][qubit_control[i]][
                     "mean_gnd_states"
                 ]
             ),
         }
         mean_exc = {
-            str(qubit_target[i]): complex(
+            qubit_target[i]: complex(
                 platform.characterization["single_qubit"][qubit_target[i]][
                     "mean_exc_states"
                 ]
             ),
-            str(qubit_control[i]): complex(
+            qubit_control[i]: complex(
                 platform.characterization["single_qubit"][qubit_control[i]][
                     "mean_exc_states"
                 ]
@@ -201,7 +201,7 @@ def amplitude_balance_cz(
         for amplitude in amplitudes:
             flux_pulse.amplitude = amplitude
             for ratio in ratios:
-                if count % points == 0 and count > 4:
+                if count % points == 0 and count > 1:
                     yield data
                     yield fit_amplitude_balance_cz(data)
                 flux_pulse[0].amplitude = amplitude
@@ -210,71 +210,64 @@ def amplitude_balance_cz(
                 for det in detuning:
                     RX90_pulse.relative_phase = np.deg2rad(det)
 
-                    while True:  # FIXME: Long scan, it is to avoid QBlox bug
-                        try:
-                            sequenceON = (
-                                sequence_target
-                                + initial_RX_pulse
-                                + RX_pulse
-                                + ro_pulse_control
-                            )
-                            sequenceOFF = sequence_target + ro_pulse_control
+                    # while True:  # FIXME: Long scan, it is to avoid QBlox bug
+                    #     try:
+                    sequenceON = (
+                        sequence_target + initial_RX_pulse + RX_pulse + ro_pulse_control
+                    )
+                    sequenceOFF = sequence_target + ro_pulse_control
 
-                            platform_results = platform.execute_pulse_sequence(
-                                sequenceON
-                            )
+                    platform_results = platform.execute_pulse_sequence(sequenceON)
 
-                            for ro_pulse in sequenceON.ro_pulses:
-                                results = {
-                                    "MSR[V]": platform_results[ro_pulse.serial][0],
-                                    "i[V]": platform_results[ro_pulse.serial][2],
-                                    "q[V]": platform_results[ro_pulse.serial][3],
-                                    "phase[rad]": platform_results[ro_pulse.serial][1],
-                                    "prob[dimensionless]": iq_to_prob(
-                                        platform_results[ro_pulse.serial][2],
-                                        platform_results[ro_pulse.serial][3],
-                                        mean_gnd[str(ro_pulse.qubit)],
-                                        mean_exc[str(ro_pulse.qubit)],
-                                    ),
-                                    "controlqubit": qubit_control[i],
-                                    "targetqubit": qubit_target[i],
-                                    "result_qubit": ro_pulse.qubit,
-                                    "ON_OFF": "ON",
-                                    "detuning[degree]": det,
-                                    "flux_pulse_amplitude[dimensionless]": amplitude,
-                                    "flux_pulse_ratio[dimensionless]": ratio,
-                                }
-                                data.add(results)
+                    for ro_pulse in sequenceON.ro_pulses:
+                        results = {
+                            "MSR[V]": platform_results[ro_pulse.serial][0],
+                            "i[V]": platform_results[ro_pulse.serial][2],
+                            "q[V]": platform_results[ro_pulse.serial][3],
+                            "phase[rad]": platform_results[ro_pulse.serial][1],
+                            "prob[dimensionless]": iq_to_prob(
+                                platform_results[ro_pulse.serial][2],
+                                platform_results[ro_pulse.serial][3],
+                                mean_gnd[ro_pulse.qubit],
+                                mean_exc[ro_pulse.qubit],
+                            ),
+                            "controlqubit": qubit_control[i],
+                            "targetqubit": qubit_target[i],
+                            "result_qubit": ro_pulse.qubit,
+                            "ON_OFF": "ON",
+                            "detuning[degree]": det,
+                            "flux_pulse_amplitude[dimensionless]": amplitude,
+                            "flux_pulse_ratio[dimensionless]": ratio,
+                        }
+                        data.add(results)
 
-                            platform_results = platform.execute_pulse_sequence(
-                                sequenceOFF
-                            )
+                    platform_results = platform.execute_pulse_sequence(sequenceOFF)
 
-                            for ro_pulse in sequenceOFF.ro_pulses:
-                                results = {
-                                    "MSR[V]": platform_results[ro_pulse.serial][0],
-                                    "i[V]": platform_results[ro_pulse.serial][2],
-                                    "q[V]": platform_results[ro_pulse.serial][3],
-                                    "phase[rad]": platform_results[ro_pulse.serial][1],
-                                    "prob[dimensionless]": iq_to_prob(
-                                        platform_results[ro_pulse.serial][2],
-                                        platform_results[ro_pulse.serial][3],
-                                        mean_gnd[str(ro_pulse.qubit)],
-                                        mean_exc[str(ro_pulse.qubit)],
-                                    ),
-                                    "controlqubit": qubit_control[i],
-                                    "targetqubit": qubit_target[i],
-                                    "result_qubit": ro_pulse.qubit,
-                                    "ON_OFF": "OFF",
-                                    "detuning[degree]": det,
-                                    "flux_pulse_amplitude[dimensionless]": amplitude,
-                                    "flux_pulse_ratio[dimensionless]": ratio,
-                                }
-                                data.add(results)
+                    for ro_pulse in sequenceOFF.ro_pulses:
+                        results = {
+                            "MSR[V]": platform_results[ro_pulse.serial][0],
+                            "i[V]": platform_results[ro_pulse.serial][2],
+                            "q[V]": platform_results[ro_pulse.serial][3],
+                            "phase[rad]": platform_results[ro_pulse.serial][1],
+                            "prob[dimensionless]": iq_to_prob(
+                                platform_results[ro_pulse.serial][2],
+                                platform_results[ro_pulse.serial][3],
+                                mean_gnd[ro_pulse.qubit],
+                                mean_exc[ro_pulse.qubit],
+                            ),
+                            "controlqubit": qubit_control[i],
+                            "targetqubit": qubit_target[i],
+                            "result_qubit": ro_pulse.qubit,
+                            "ON_OFF": "OFF",
+                            "detuning[degree]": det,
+                            "flux_pulse_amplitude[dimensionless]": amplitude,
+                            "flux_pulse_ratio[dimensionless]": ratio,
+                        }
+                        data.add(results)
 
-                        except:
-                            continue
-                        break
+                        # except:
+                        #     continue
+                        # break
 
                 count += 1
             yield data
@@ -374,24 +367,24 @@ def chevron_iswap(
 
         # Mean and excited states
         mean_gnd = {
-            str(qubit_target[i]): complex(
+            qubit_target[i]: complex(
                 platform.characterization["single_qubit"][qubit_target[i]][
                     "mean_gnd_states"
                 ]
             ),
-            str(qubit_control[i]): complex(
+            qubit_control[i]: complex(
                 platform.characterization["single_qubit"][qubit_control[i]][
                     "mean_gnd_states"
                 ]
             ),
         }
         mean_exc = {
-            str(qubit_target[i]): complex(
+            qubit_target[i]: complex(
                 platform.characterization["single_qubit"][qubit_target[i]][
                     "mean_exc_states"
                 ]
             ),
-            str(qubit_control[i]): complex(
+            qubit_control[i]: complex(
                 platform.characterization["single_qubit"][qubit_control[i]][
                     "mean_exc_states"
                 ]
@@ -420,8 +413,8 @@ def chevron_iswap(
                                 "prob[dimensionless]": iq_to_prob(
                                     platform_results[ro_pulse.serial][2],
                                     platform_results[ro_pulse.serial][3],
-                                    mean_gnd[str(ro_pulse.qubit)],
-                                    mean_exc[str(ro_pulse.qubit)],
+                                    mean_gnd[ro_pulse.qubit],
+                                    mean_exc[ro_pulse.qubit],
                                 ),
                                 "controlqubit": qubit_control[i],
                                 "targetqubit": qubit_target[i],
