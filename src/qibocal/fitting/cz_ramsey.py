@@ -32,13 +32,17 @@ def fit_amplitude_balance_cz(data):
         options=["controlqubit", "targetqubit"],
     )
 
+    combinations = np.vstack(
+        (data.df["targetqubit"].to_numpy(), data.df["controlqubit"].to_numpy())
+    ).transpose()
     # Extracting unique values
-    combinations = np.unique(
-        np.vstack(
-            (data.df["targetqubit"].to_numpy(), data.df["controlqubit"].to_numpy())
-        ).transpose(),
-        axis=0,
-    )
+    if isinstance(data.df["targetqubit"].to_numpy()[0], np.integer):
+        combinations = np.unique(combinations, axis=0)
+    else:
+        flatdata_string = [str(p[0]) + "%" + str(p[1]) for p in combinations]
+        flatdata_string = list(set(flatdata_string))
+        combinations = [p.split("%") for p in flatdata_string]
+
     amplitude_unique = np.unique(data.df["flux_pulse_amplitude"].to_numpy())
     ratio_unique = np.unique(data.df["flux_pulse_ratio"].to_numpy())
     detuning_unique = np.unique(data.df["detuning"].to_numpy())
@@ -61,37 +65,40 @@ def fit_amplitude_balance_cz(data):
         )
         detuning_dict = sort_data(data, q_control, q_target, ["detuning", "degree"])
 
-        for ratio in ratio_unique:
-            for amp in amplitude_unique:
-                # Normalizing between -1 and 1
-                for ON_OFF in ["ON", "OFF"]:
-                    prob_dict["target"][ON_OFF][
-                        (amplitude_dict["target"][ON_OFF] == amp)
-                        & (ratio_dict["target"][ON_OFF] == ratio)
-                    ] = prob_dict["target"][ON_OFF][
-                        (amplitude_dict["target"][ON_OFF] == amp)
-                        & (ratio_dict["target"][ON_OFF] == ratio)
-                    ] - np.min(
-                        prob_dict["target"][ON_OFF][
-                            (amplitude_dict["target"][ON_OFF] == amp)
-                            & (ratio_dict["target"][ON_OFF] == ratio)
-                        ]
-                    )
-                    prob_dict["target"][ON_OFF][
-                        (amplitude_dict["target"][ON_OFF] == amp)
-                        & (ratio_dict["target"][ON_OFF] == ratio)
-                    ] = prob_dict["target"][ON_OFF][
-                        (amplitude_dict["target"][ON_OFF] == amp)
-                        & (ratio_dict["target"][ON_OFF] == ratio)
-                    ] / np.max(
-                        prob_dict["target"][ON_OFF][
-                            (amplitude_dict["target"][ON_OFF] == amp)
-                            & (ratio_dict["target"][ON_OFF] == ratio)
-                        ]
-                    )
+        for amp in amplitude_unique:
+            for ratio in ratio_unique:
 
-                # Fitting the data
                 try:
+                    # Normalizing between -1 and 1
+                    for ON_OFF in ["ON", "OFF"]:
+                        prob_dict["target"][ON_OFF][
+                            (amplitude_dict["target"][ON_OFF] == amp)
+                            & (ratio_dict["target"][ON_OFF] == ratio)
+                        ] = prob_dict["target"][ON_OFF][
+                            (amplitude_dict["target"][ON_OFF] == amp)
+                            & (ratio_dict["target"][ON_OFF] == ratio)
+                        ] - np.nanmean(
+                            prob_dict["target"][ON_OFF][
+                                (amplitude_dict["target"][ON_OFF] == amp)
+                                & (ratio_dict["target"][ON_OFF] == ratio)
+                            ]
+                        )
+                        prob_dict["target"][ON_OFF][
+                            (amplitude_dict["target"][ON_OFF] == amp)
+                            & (ratio_dict["target"][ON_OFF] == ratio)
+                        ] = prob_dict["target"][ON_OFF][
+                            (amplitude_dict["target"][ON_OFF] == amp)
+                            & (ratio_dict["target"][ON_OFF] == ratio)
+                        ] / np.max(
+                            np.abs(
+                                prob_dict["target"][ON_OFF][
+                                    (amplitude_dict["target"][ON_OFF] == amp)
+                                    & (ratio_dict["target"][ON_OFF] == ratio)
+                                ]
+                            )
+                        )
+
+                    # Fitting the data
                     popt_ON, pcov_ON = curve_fit(
                         f,
                         detuning_dict["target"]["ON"][
@@ -138,14 +145,13 @@ def fit_amplitude_balance_cz(data):
                     }
                 except:
                     results = {
-                        "flux_pulse_amplitude[dimensionless]": np.nan,
-                        "flux_pulse_ratio[dimensionless]": np.nan,
+                        "flux_pulse_amplitude[dimensionless]": amp,
+                        "flux_pulse_ratio[dimensionless]": ratio,
                         "initial_phase_ON[degree]": np.nan,
                         "initial_phase_OFF[degree]": np.nan,
                         "phase_difference[degree]": np.nan,
-                        "leakage[dimensionless]": np.nan,
-                        "controlqubit": np.nan,
-                        "targetqubit": np.nan,
+                        "controlqubit": q_control,
+                        "targetqubit": q_target,
                     }
 
                 data_fit.add(results)

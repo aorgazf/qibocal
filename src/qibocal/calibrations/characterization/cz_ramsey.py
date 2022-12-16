@@ -12,7 +12,9 @@ from qibocal.decorators import plot
 from qibocal.fitting import fit_amplitude_balance_cz
 
 
-@plot("snz_detuning", plots.amplitude_balance_cz)
+@plot("Phi2Q", plots.amplitude_balance_cz_phi2q)
+@plot("Leakage", plots.amplitude_balance_cz_leakage)
+@plot("Acquired phase", plots.amplitude_balance_cz_acquired_phase)
 def amplitude_balance_cz(
     platform: AbstractPlatform,
     qubit: int,
@@ -199,11 +201,10 @@ def amplitude_balance_cz(
 
         count = 0
         for amplitude in amplitudes:
-            flux_pulse.amplitude = amplitude
             for ratio in ratios:
                 if count % points == 0 and count > 1:
                     yield data
-                    yield fit_amplitude_balance_cz(data)
+                    # yield fit_amplitude_balance_cz(data)
                 flux_pulse[0].amplitude = amplitude
                 flux_pulse[1].amplitude = amplitude * ratio
 
