@@ -9,7 +9,7 @@ from scipy.optimize import curve_fit
 from scipy.signal import lfilter
 
 from qibocal.data import Data, DataUnits
-from qibocal.fitting.utils import cos, exp, flipping, lorenzian, rabi, ramsey
+from qibocal.fitting import sort_data
 
 
 def amplitude_balance_cz_acquired_phase(folder, routine, qubit, format):
@@ -75,6 +75,7 @@ def amplitude_balance_cz_acquired_phase(folder, routine, qubit, format):
                     & (data_fit.df["targetqubit"] == q_target)
                 ],
                 name=f"Q{q_control} Q{q_target}",
+                colorscale="balance",
             ),
             row=i + 1,
             col=1,
@@ -94,10 +95,17 @@ def amplitude_balance_cz_acquired_phase(folder, routine, qubit, format):
                     & (data_fit.df["targetqubit"] == q_target)
                 ],
                 name=f"Q{q_control} Q{q_target}",
+                colorscale="balance",
             ),
             row=i + 1,
             col=2,
         )
+    fig.update_layout(
+        showlegend=False,
+        uirevision="0",  # ``uirevision`` allows zooming while live plotting
+        xaxis_title="Amplitude (dimensionless)",
+        yaxis_title="A/B ratio (dimensionless)",
+    )
     return fig
 
 
@@ -151,11 +159,7 @@ def amplitude_balance_cz_phi2q(folder, routine, qubit, format):
         q_control = comb[1]
         fig.add_trace(
             go.Heatmap(
-                z=data_fit.get_values("initial_phase_ON", "degree")[
-                    (data_fit.df["controlqubit"] == q_control)
-                    & (data_fit.df["targetqubit"] == q_target)
-                ]
-                - data_fit.get_values("initial_phase_OFF", "degree")[
+                z=data_fit.get_values("phase_difference", "degree")[
                     (data_fit.df["controlqubit"] == q_control)
                     & (data_fit.df["targetqubit"] == q_target)
                 ],
@@ -168,11 +172,17 @@ def amplitude_balance_cz_phi2q(folder, routine, qubit, format):
                     & (data_fit.df["targetqubit"] == q_target)
                 ],
                 name=f"Phi2Q - Q{q_control} Q{q_target}",
+                colorscale="balance",
             ),
             row=i + 1,
             col=1,
         )
-
+    fig.update_layout(
+        showlegend=False,
+        uirevision="0",  # ``uirevision`` allows zooming while live plotting
+        xaxis_title="Amplitude (dimensionless)",
+        yaxis_title="A/B ratio (dimensionless)",
+    )
     return fig
 
 
@@ -239,10 +249,231 @@ def amplitude_balance_cz_leakage(folder, routine, qubit, format):
                     & (data_fit.df["targetqubit"] == q_target)
                 ],
                 name=f"Leakage Q{q_control} Q{q_target}",
+                colorscale="balance",
             ),
             row=i + 1,
             col=1,
         )
+    fig.update_layout(
+        showlegend=False,
+        uirevision="0",  # ``uirevision`` allows zooming while live plotting
+        xaxis_title="Amplitude (dimensionless)",
+        yaxis_title="A/B ratio (dimensionless)",
+    )
+    return fig
+
+
+def amplitude_balance_cz_raw_data(folder, routine, qubit, format):
+    r"""
+    Plotting function for the amplitude balance of the CZ gate.
+
+    Args:
+        folder (str): The folder where the data is stored.
+        routine (str): The routine used to generate the data.
+        qubit (int): The qubit to plot.
+        format (str): The format of the data.
+
+    Returns:
+        fig (plotly.graph_objects.Figure): The figure.
+    """
+    try:
+        data = DataUnits.load_data(folder, routine, format, f"data")
+        data_fit = DataUnits.load_data(folder, routine, format, f"fit")
+    except:
+        data = DataUnits(
+            name=f"data",
+            quantities={
+                "detuning": "degree",
+                "flux_pulse_amplitude": "dimensionless",
+                "flux_pulse_ratio": "dimensionless",
+                "prob": "dimensionless",
+            },
+            options=["controlqubit", "targetqubit", "ON_OFF", "result_qubit"],
+        )
+        data_fit = DataUnits(
+            name=f"fit",
+            quantities={
+                "flux_pulse_amplitude": "dimensionless",
+                "flux_pulse_ratio": "dimensionless",
+                "initial_phase_ON": "degree",
+                "initial_phase_OFF": "degree",
+                "phase_difference": "degree",
+                "leakage": "dimensionless",
+            },
+            options=["controlqubit", "targetqubit"],
+        )
+
+    combinations = np.vstack(
+        (data.df["targetqubit"].to_numpy(), data.df["controlqubit"].to_numpy())
+    ).transpose()
+    # Extracting unique values
+    if isinstance(data.df["targetqubit"].to_numpy()[0], np.integer):
+        combinations = np.unique(combinations, axis=0)
+    else:
+        flatdata_string = [str(p[0]) + "%" + str(p[1]) for p in combinations]
+        flatdata_string = list(set(flatdata_string))
+        combinations = [p.split("%") for p in flatdata_string]
+
+    fig = make_subplots(
+        cols=2,
+        rows=len(combinations),
+    )
+
+    for i, comb in enumerate(combinations):
+        q_target = comb[0]
+        q_control = comb[1]
+
+        # Point where Phi2Q is closest to 180 degrees
+        idx = np.argmin(np.abs(data_fit.get_values("phase_difference", "degree") - 180))
+
+        fig.add_trace(
+            go.Scatter(
+                x=data.get_values("detuning", "degree")[
+                    (
+                        data.df["flux_pulse_ratio"]
+                        == data_fit.df["flux_pulse_ratio"][idx]
+                    )
+                    & (
+                        data.df["flux_pulse_amplitude"]
+                        == data_fit.df["flux_pulse_amplitude"][idx]
+                    )
+                    & (data.df["controlqubit"] == q_control)
+                    & (data.df["targetqubit"] == q_target)
+                    & (data.df["ON_OFF"] == "ON")
+                    & (data.df["result_qubit"] == q_target)
+                ],
+                y=data.get_values("prob", "dimensionless")[
+                    (
+                        data.df["flux_pulse_ratio"]
+                        == data_fit.df["flux_pulse_ratio"][idx]
+                    )
+                    & (
+                        data.df["flux_pulse_amplitude"]
+                        == data_fit.df["flux_pulse_amplitude"][idx]
+                    )
+                    & (data.df["controlqubit"] == q_control)
+                    & (data.df["targetqubit"] == q_target)
+                    & (data.df["ON_OFF"] == "ON")
+                    & (data.df["result_qubit"] == q_target)
+                ],
+                name=f"ON Q{q_target}",
+            ),
+            row=i + 1,
+            col=2,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=data.get_values("detuning", "degree")[
+                    (
+                        data.df["flux_pulse_ratio"]
+                        == data_fit.df["flux_pulse_ratio"][idx]
+                    )
+                    & (
+                        data.df["flux_pulse_amplitude"]
+                        == data_fit.df["flux_pulse_amplitude"][idx]
+                    )
+                    & (data.df["controlqubit"] == q_control)
+                    & (data.df["targetqubit"] == q_target)
+                    & (data.df["ON_OFF"] == "OFF")
+                    & (data.df["result_qubit"] == q_target)
+                ],
+                y=data.get_values("prob", "dimensionless")[
+                    (
+                        data.df["flux_pulse_ratio"]
+                        == data_fit.df["flux_pulse_ratio"][idx]
+                    )
+                    & (
+                        data.df["flux_pulse_amplitude"]
+                        == data_fit.df["flux_pulse_amplitude"][idx]
+                    )
+                    & (data.df["controlqubit"] == q_control)
+                    & (data.df["targetqubit"] == q_target)
+                    & (data.df["ON_OFF"] == "OFF")
+                    & (data.df["result_qubit"] == q_target)
+                ],
+                name=f"OFF Q{q_target}",
+            ),
+            row=i + 1,
+            col=2,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=data.get_values("detuning", "degree")[
+                    (
+                        data.df["flux_pulse_ratio"]
+                        == data_fit.df["flux_pulse_ratio"][idx]
+                    )
+                    & (
+                        data.df["flux_pulse_amplitude"]
+                        == data_fit.df["flux_pulse_amplitude"][idx]
+                    )
+                    & (data.df["controlqubit"] == q_control)
+                    & (data.df["targetqubit"] == q_target)
+                    & (data.df["ON_OFF"] == "ON")
+                    & (data.df["result_qubit"] == q_target)
+                ],
+                y=data.get_values("prob", "dimensionless")[
+                    (
+                        data.df["flux_pulse_ratio"]
+                        == data_fit.df["flux_pulse_ratio"][idx]
+                    )
+                    & (
+                        data.df["flux_pulse_amplitude"]
+                        == data_fit.df["flux_pulse_amplitude"][idx]
+                    )
+                    & (data.df["controlqubit"] == q_control)
+                    & (data.df["targetqubit"] == q_target)
+                    & (data.df["ON_OFF"] == "ON")
+                    & (data.df["result_qubit"] == q_control)
+                ],
+                name=f"ON Q{q_target}",
+            ),
+            row=i + 1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=data.get_values("detuning", "degree")[
+                    (
+                        data.df["flux_pulse_ratio"]
+                        == data_fit.df["flux_pulse_ratio"][idx]
+                    )
+                    & (
+                        data.df["flux_pulse_amplitude"]
+                        == data_fit.df["flux_pulse_amplitude"][idx]
+                    )
+                    & (data.df["controlqubit"] == q_control)
+                    & (data.df["targetqubit"] == q_target)
+                    & (data.df["ON_OFF"] == "OFF")
+                    & (data.df["result_qubit"] == q_target)
+                ],
+                y=data.get_values("prob", "dimensionless")[
+                    (
+                        data.df["flux_pulse_ratio"]
+                        == data_fit.df["flux_pulse_ratio"][idx]
+                    )
+                    & (
+                        data.df["flux_pulse_amplitude"]
+                        == data_fit.df["flux_pulse_amplitude"][idx]
+                    )
+                    & (data.df["controlqubit"] == q_control)
+                    & (data.df["targetqubit"] == q_target)
+                    & (data.df["ON_OFF"] == "OFF")
+                    & (data.df["result_qubit"] == q_control)
+                ],
+                name=f"OFF Q{q_control}",
+            ),
+            row=i + 1,
+            col=1,
+        )
+    fig.update_layout(
+        showlegend=False,
+        uirevision="0",  # ``uirevision`` allows zooming while live plotting
+        xaxis_title="Detuning (degree)",
+        yaxis_title="Probability ",
+        xaxis2_title="Detuning (degree)",
+        yaxis2_title="Probability ",
+    )
     return fig
 
 
