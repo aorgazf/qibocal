@@ -74,22 +74,28 @@ def fit_amplitude_balance_cz(data):
                         prob_dict["target"][ON_OFF][
                             (amplitude_dict["target"][ON_OFF] == amp)
                             & (ratio_dict["target"][ON_OFF] == ratio)
-                        ] = (
+                        ] = prob_dict["target"][ON_OFF][
+                            (amplitude_dict["target"][ON_OFF] == amp)
+                            & (ratio_dict["target"][ON_OFF] == ratio)
+                        ] - np.nanmean(
                             prob_dict["target"][ON_OFF][
                                 (amplitude_dict["target"][ON_OFF] == amp)
                                 & (ratio_dict["target"][ON_OFF] == ratio)
                             ]
-                            * 2
                         )
                         prob_dict["target"][ON_OFF][
                             (amplitude_dict["target"][ON_OFF] == amp)
                             & (ratio_dict["target"][ON_OFF] == ratio)
-                        ] = (
-                            prob_dict["target"][ON_OFF][
-                                (amplitude_dict["target"][ON_OFF] == amp)
-                                & (ratio_dict["target"][ON_OFF] == ratio)
-                            ]
-                            - 1
+                        ] = prob_dict["target"][ON_OFF][
+                            (amplitude_dict["target"][ON_OFF] == amp)
+                            & (ratio_dict["target"][ON_OFF] == ratio)
+                        ] - np.max(
+                            np.abs(
+                                prob_dict["target"][ON_OFF][
+                                    (amplitude_dict["target"][ON_OFF] == amp)
+                                    & (ratio_dict["target"][ON_OFF] == ratio)
+                                ]
+                            )
                         )
 
                     # Fitting the data
