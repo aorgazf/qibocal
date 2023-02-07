@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -27,6 +29,13 @@ def t1_time_msr(folder, routine, qubit, format):
         try:
             data = DataUnits.load_data(folder, subfolder, routine, format, f"data")
             data.df = data.df[data.df["qubit"] == qubit]
+            file = f"{folder}/{subfolder}/{routine}/sequence.pickle"
+            with open(file, "rb") as ps:
+                sequence = pickle.load(ps)
+
+            print(sequence[0])
+            print(sequence[1])
+
         except:
             data = DataUnits(
                 name=f"data",
@@ -117,7 +126,7 @@ def t1_time_msr(folder, routine, qubit, format):
             )
 
             fitting_report = fitting_report + (
-                f"q{qubit}/r{report_n} | t1: {params['t1']:,.0f} ns.<br><br>"
+                f"q{qubit}/r{report_n} | t1: {params['T1']:,.0f} ns.<br><br>"
             )
 
         report_n += 1
