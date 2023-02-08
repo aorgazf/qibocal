@@ -33,8 +33,8 @@ def t1_time_msr(folder, routine, qubit, format):
             with open(file, "rb") as ps:
                 sequence = pickle.load(ps)
 
-            print(sequence[0])
-            print(sequence[1])
+            # print(sequence[0])
+            # print(sequence[1])
 
         except:
             data = DataUnits(
@@ -141,4 +141,4 @@ def t1_time_msr(folder, routine, qubit, format):
 
     figures.append(fig)
 
-    return figures, fitting_report
+    return figures, fitting_report, sequence

@@ -54,6 +54,9 @@ app.layout = html.Div(
             ],
         ),
         html.Div(id="div-fitting", className="div-fitting"),
+        html.Button("Show Pulse Sequence", id="button"),
+        # html.Div(id="output"),
+        html.Div(id="sequence", className="sequence"),
         html.Div(id="div-figures"),
         dcc.Location(id="url", refresh=False),
         dcc.Interval(
@@ -63,8 +66,20 @@ app.layout = html.Div(
             n_intervals=0,
             disabled=False,
         ),
+        dcc.Store(id="memory"),
     ]
 )
+
+
+@app.callback(
+    Output(component_id="sequence", component_property="children"),
+    [Input("button", "n_clicks")],
+    [Input("memory", "data")],
+)
+def show_alert(n_clicks, data):
+    if n_clicks:
+        # print(data)
+        return (html.Span(f"{data}"),)
 
 
 @app.callback(
@@ -72,6 +87,7 @@ app.layout = html.Div(
     Output(component_id="latest-timestamp", component_property="children"),
     Output(component_id="interval", component_property="interval"),
     Output(component_id="div-fitting", component_property="children"),
+    Output("memory", "data"),
     Input("interval", "n_intervals"),
     Input("url", "pathname"),
     Input("interval-refresh", "value"),
@@ -102,7 +118,10 @@ def get_graph(interval, url, value):
         # # multiple routines with different names in one folder
         # # should be changed to:
         # # return getattr(getattr(plots, routine), method)(data)
-        figs, fitting_report = getattr(plots, method)(folder, routine, qubit, format)
+
+        figs, fitting_report, sequence = getattr(plots, method)(
+            folder, routine, qubit, format
+        )
         et = time.time()
 
         if value == 0:
@@ -161,6 +180,7 @@ def get_graph(interval, url, value):
             [html.Span(f"Last update: {(timestamp)}")],
             refresh_rate * 1000,
             table,
+            f"{sequence}",
         )
     except (FileNotFoundError, pd.errors.EmptyDataError):
         timestamp = datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
@@ -169,4 +189,5 @@ def get_graph(interval, url, value):
             [html.Span(f"Last updated: {timestamp}")],
             refresh_rate * 1000,
             table,
+            f"{sequence}",
         )
