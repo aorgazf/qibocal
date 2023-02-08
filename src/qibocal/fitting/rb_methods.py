@@ -14,6 +14,14 @@ def exp2_func(x: np.ndarray, A1: float, A2: float, f1: float, f2: float) -> np.n
     """ """
     return A1 * f1**x + A2 * f2**x
 
+def expn_func(x: np.ndarray, As: list, fs: list) -> np.ndarray:
+    """ """
+    res = np.zeros(x.shape)
+    for i in range(min(len(As), len(fs))):
+        for j in range(len(x)):
+            res[j] += As[i] * fs[i] ** x[j]
+    return res
+
 
 def esprit(xdata, ydata, num_decays, hankel_dim=None):
     """Implements the ESPRIT algorithm for peak detection
@@ -32,6 +40,7 @@ def esprit(xdata, ydata, num_decays, hankel_dim=None):
     hankel_dim = max(num_decays + 1, hankel_dim)  # 5
     hankel_dim = min(hankel_dim, xdata.size - num_decays + 1)  # 5
     hankelMatrix = hankel(ydata[:hankel_dim], ydata[(hankel_dim - 1) :])
+
     # Calculate nontrivial (nonzero) singular vectors of the hankel matrix.
     U, _, _ = svd(hankelMatrix, full_matrices=False)
     # Cut off the columns to the amount which is needed.
@@ -47,6 +56,20 @@ def esprit(xdata, ydata, num_decays, hankel_dim=None):
             1:,
         ]
     )
+
+    # estimate dimension of the environment
+    # print("[", end="")
+    # for i in range(len(spectralMatrix)):
+    #     print("[", end="")
+    #     for j in range(len(spectralMatrix[i])):
+    #         print(round(spectralMatrix[i][j], 3), end=", " if j < len(spectralMatrix[i])-1 else "")
+    #     print("]," if i < len(spectralMatrix)-1 else "]]")
+    dim_env = (np.linalg.norm(hankelMatrix, 'nuc')) / (np.linalg.norm(hankelMatrix, 'fro'))
+    print("\nRank of the Hankel matrix:", dim_env, "\n")
+    _, hankel_svds, _ = np.linalg.svd(hankelMatrix)
+    hankel_svds.sort()
+    print("Singular values =\n", np.round(hankel_svds, 3))
+
     # Calculate the poles/eigenvectors and space them right.
     decays = np.linalg.eigvals(spectralMatrix) * sampleRate
     return decays
@@ -138,4 +161,27 @@ def fit_exp2_func(
     )
     # Get the ydata for the fit with the calculated parameters.
     y_fit = exp2_func(x_fit, *alphas, *decays)
-    return x_fit, y_fit, tuple([*alphas, *decays])
+    return (*alphas, 0), (*decays, 0), np.real(x_fit), np.real(y_fit)
+
+def fit_expn_func(
+    xdata: Union[np.ndarray, list], ydata: Union[np.ndarray, list], **kwargs
+) -> Tuple[np.ndarray, np.ndarray, tuple]:
+    """Calculate n exponentials on top of each other fit to the given ydata."""
+
+    # TODO the data has to have a sufficiently big size, check that.
+    ndecays = 4
+    decays = esprit(xdata, ydata, ndecays)
+    vandermonde = np.vander(decays, N=xdata[-1] + 1, increasing=True)
+    vandermonde = np.take(vandermonde, xdata, axis=1)
+    alphas = np.linalg.pinv(vandermonde.T) @ ydata.reshape(-1, 1).flatten()
+    # Build a finer spaces xdata array for plotting the fit.
+    if sum(decays < 0):
+        dtype = complex
+    else:
+        dtype = float
+    x_fit = np.linspace(
+        np.sort(xdata)[0], np.sort(xdata)[-1], num=len(xdata) * 20, dtype=dtype
+    )
+    # Get the ydata for the fit with the calculated parameters.
+    y_fit = expn_func(x_fit, alphas, decays)
+    return (*alphas, 0), (*decays, 0), np.real(x_fit), np.real(y_fit)

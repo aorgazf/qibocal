@@ -82,10 +82,10 @@ actions:
   #   software_averages: 1
   #   points: 1
 
-  allXY:
-    beta_param: Null
-    software_averages: 1
-    points: 1
+  # allXY:
+  #   beta_param: Null
+  #   software_averages: 1
+  #   points: 1
 
   # calibrate_qubit_states:
   #   niter: 1024

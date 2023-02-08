@@ -20,6 +20,9 @@ from qibocal.calibrations.protocols.utils import (
 )
 from qibocal.config import raise_error
 
+import pdb # TODO REMOVE
+
+
 
 class Circuitfactory:
     """TODO write documentation"""
@@ -39,14 +42,17 @@ class Circuitfactory:
         self.n = 0
         return self
 
+    @abc.abstractmethod
     def __next__(self) -> Circuit:
         if self.n >= self.runs * len(self.depths):
             raise StopIteration
         else:
             circuit = self.build_circuit(self.depths[self.n % len(self.depths)])
+            circuit_init_kwargs = circuit.init_kwargs
+            del circuit_init_kwargs['nqubits']
             self.n += 1
             # Distribute the circuit onto the given support.
-            bigcircuit = Circuit(self.nqubits)
+            bigcircuit = Circuit(self.nqubits, **circuit_init_kwargs)
             bigcircuit.add(circuit.on_qubits(*self.qubits))
             return bigcircuit
 
@@ -122,6 +128,7 @@ class SingleCliffordsFactory(Circuitfactory):
         return gates_list
 
 
+
 class Experiment:
     """Experiment objects which holds an iterable circuit factory along with
     a simple data structure associated to each circuit.
@@ -140,12 +147,14 @@ class Experiment:
         nshots: int = None,
         data: list = None,
         noisemodel: NoiseModel = None,
+        init_state: np.ndarray = None
     ) -> None:
         """ """
         self.circuitfactory = circuitfactory
         self.nshots = nshots
         self.data = data
         self.__noise_model = noisemodel
+        self.init_state = init_state
 
     @property
     def noise_model(self):
@@ -214,7 +223,11 @@ class Experiment:
         """
         if self.noise_model is not None:
             circuit = self.noise_model.apply(circuit)
-        samples = circuit(nshots=self.nshots).samples()
+        # print(circuit.copy(deep=True)().state(numpy=True))
+        # print(np.diag(circuit.copy(deep=True)().state(numpy=True)))
+        # print(np.trace(circuit.copy(deep=True)().state(numpy=True)))
+        
+        samples = circuit(self.init_state, nshots=self.nshots).samples()
         return {"samples": samples}
 
     def save(self) -> None:
@@ -313,13 +326,16 @@ class Result:
             "nshots": len(self.df["samples"].to_numpy()[0]),
         }
         return "<br>".join([f"{key} : {value}\n" for key, value in mydict.items()])
-
-    def scatter_fit_fig(self, xdata_scatter, ydata_scatter, xdata, ydata):
+    
+    def scatter_fit_fig(self, xdata_scatter, ydata_scatter, xdata, ydata, ndecays=1, myparams=[]):
         myfigs = []
+
+        import pdb
+        pdb.set_trace()
         popt, pcov, x_fit, y_fit = self.fitting_func(xdata, ydata)
         fig = go.Scatter(
             x=xdata_scatter,
-            y=ydata_scatter,
+            y=np.real(ydata_scatter),
             line=dict(color="#6597aa"),
             mode="markers",
             marker={"opacity": 0.2, "symbol": "square"},
@@ -327,13 +343,28 @@ class Result:
         )
         myfigs.append(fig)
         fig = go.Scatter(
-            x=xdata, y=ydata, line=dict(color="#aa6464"), mode="markers", name="average"
+            x=xdata, y=np.real(ydata), line=dict(color="#aa6464"), mode="markers", name="average"
         )
         myfigs.append(fig)
+        if ndecays == 1:
+            name = "A: {:.3f}, p: {:.3f}, B: {:.3f}".format(popt[0], popt[1], popt[2])
+        else:
+            name = ""
+            print(pcov)
+            for i in range(len(popt)-1):
+                name += f"A{i}: {(np.round((popt[i]), 3))}, p{i}: {(np.round((pcov[i]), 3))}<br>"
         fig = go.Scatter(
             x=x_fit,
             y=y_fit,
-            name="A: {:.3f}, p: {:.3f}, B: {:.3f}".format(popt[0], popt[1], popt[2]),
+            name=name,
+            line=go.scatter.Line(dash="dot"),
+        )
+        myfigs.append(fig)
+        if len(myparams) > 0:
+            fig = go.Scatter(
+            x=myparams[0],
+            y=myparams[1],
+            name="F_th",
             line=go.scatter.Line(dash="dot"),
         )
         myfigs.append(fig)
@@ -378,3 +409,4 @@ class Result:
             width=1000,
         )
         return fig
+
