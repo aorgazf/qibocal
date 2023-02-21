@@ -227,7 +227,7 @@ def flux_pulse_timing(
 @plot("cryoscope_raw", plots.cryoscope_raw)
 @plot("cryoscope_dephasing_heatmap", plots.cryoscope_dephasing_heatmap)
 @plot("cryoscope_fft_peak_fitting", plots.cryoscope_fft_peak_fitting)
-@plot("cryoscope_fft", plots.cryoscope_fft)
+# @plot("cryoscope_fft", plots.cryoscope_fft)
 @plot("cryoscope_phase", plots.cryoscope_phase)
 @plot("cryoscope_phase_heatmap", plots.cryoscope_phase_heatmap)
 @plot("cryoscope_phase_unwrapped", plots.cryoscope_phase_unwrapped)
@@ -237,11 +237,8 @@ def flux_pulse_timing(
     plots.cryoscope_phase_amplitude_unwrapped_heatmap,
 )
 @plot("cryoscope_detuning_time", plots.cryoscope_detuning_time)
-@plot("cryoscope_distorted_amplitude_time", plots.cryoscope_distorted_amplitude_time)
-@plot(
-    "cryoscope_reconstructed_amplitude_time",
-    plots.cryoscope_reconstructed_amplitude_time,
-)
+# @plot("cryoscope_distorted_amplitude_time", plots.cryoscope_distorted_amplitude_time)
+# @plot("cryoscope_reconstructed_amplitude_time", plots.cryoscope_reconstructed_amplitude_time)
 def cryoscope(
     platform: AbstractPlatform,
     qubits: dict,

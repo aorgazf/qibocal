@@ -8,7 +8,7 @@ from scipy.signal import argrelextrema, lfilter, savgol_filter
 
 from qibocal.data import Data, DataUnits
 from qibocal.fitting.utils import cos, exp, flipping, lorenzian, rabi, ramsey
-from qibocal.plots.utils import get_color, get_data_subfolders
+from qibocal.plots.utils import get_color, get_data_subfolders, grouped_by_mean
 
 MX_tag = "MX"
 MY_tag = "MY"
@@ -63,17 +63,8 @@ def cryoscope_raw(folder, routine, qubit, format):
     for subfolder in subfolders:
         try:
             data = DataUnits.load_data(folder, subfolder, routine, format, "data")
-            # data.df = data.df[data.df["qubit"] == qubit]
-            # extract qubit data and average over iterations
-            data.df = (
-                data.df[data.df["qubit"] == qubit]
-                .drop(columns=["qubit", "iteration"])
-                .groupby(
-                    ["flux_pulse_duration", "flux_pulse_amplitude", "component"],
-                    as_index=False,
-                )
-                .mean()
-            )
+            data.df = data.df[data.df["qubit"] == qubit]
+            data.df = data.df.drop(columns=["MSR", "i", "q", "phase", "qubit"])
         except:
             data = DataUnits(
                 name=f"data",
@@ -85,22 +76,29 @@ def cryoscope_raw(folder, routine, qubit, format):
                 options=["component", "qubit", "iteration"],
             )
 
-        durations = (
-            data.df[data.df["component"] == MY_tag]["flux_pulse_duration"]
-            .pint.to("ns")
-            .pint.magnitude.unique()
-        )
+        iterations = data.df["iteration"].unique()
+        data.df = data.df.drop(columns=["iteration"])
+
+        data_MX = data.df[data.df["component"] == MX_tag]
+        data_MY = data.df[data.df["component"] == MY_tag]
+        data_MX = data_MX.drop(columns=["component"])
+        data_MY = data_MY.drop(columns=["component"])
+
         amplitudes = (
-            data.df[data.df["component"] == MY_tag]["flux_pulse_amplitude"]
+            data_MY["flux_pulse_amplitude"]
             .pint.to("dimensionless")
             .pint.magnitude.unique()
         )
+        durations = data_MY["flux_pulse_duration"].pint.to("ns").pint.magnitude.unique()
 
         for amp in amplitudes:
+            data_MX_amp = data_MX[data_MX["flux_pulse_amplitude"] == amp]
+            data_MY_amp = data_MY[data_MY["flux_pulse_amplitude"] == amp]
+
             figs["raw"].add_trace(
                 go.Scatter(
                     x=durations,
-                    y=_get_values(data, MX_tag, amplitude=amp),
+                    y=data_MX_amp["prob"].astype("float").tolist(),
                     name=f"q{qubit}/r{report_n}: <X> | A = {amp:.3f}",
                 ),
                 row=1,
@@ -110,18 +108,21 @@ def cryoscope_raw(folder, routine, qubit, format):
             figs["raw"].add_trace(
                 go.Scatter(
                     x=durations,
-                    y=_get_values(data, MY_tag, amplitude=amp),
+                    y=data_MY_amp["prob"].astype("float").tolist(),
                     name=f"q{qubit}/r{report_n}: <Y> | A = {amp:.3f}",
                 ),
                 row=1,
                 col=1,
             )
+
     figs["raw"].update_layout(
         xaxis_title="Pulse duration (ns)",
         yaxis_title="Magnitude (dimensionless)",
         title=f"Raw data",
     )
-    return [figs["raw"]]
+
+    fitting_report = "No fitting data"
+    return [figs["raw"]], fitting_report
 
 
 def flux_pulse_timing(folder, routine, qubit, format):
@@ -222,7 +223,9 @@ def cryoscope_dephasing_heatmap(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
 def cryoscope_fft_peak_fitting(folder, routine, qubit, format):
@@ -306,9 +309,12 @@ def cryoscope_fft_peak_fitting(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
+# ERROR: pfit = np.polyfit(curve_amps, curve_detunings, 2)
 def cryoscope_fft(folder, routine, qubit, format):
     data = DataUnits.load_data(folder, "data", routine, format, "data")
     durations, amplitudes = _get_flux_pulse_durations_and_amplitudes(data)
@@ -361,6 +367,7 @@ def cryoscope_fft(folder, routine, qubit, format):
 
     # print(curve_amps,curve_detunings)
     pfit = np.polyfit(curve_amps, curve_detunings, 2)
+
     # DEBUG:
     _amp = -0.109
     print(f"Curve fit {pfit} _ {pfit[0]*_amp**2 + pfit[1]*_amp + pfit[2]}")
@@ -404,7 +411,9 @@ def cryoscope_fft(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
 def cryoscope_phase(folder, routine, qubit, format):
@@ -446,7 +455,9 @@ def cryoscope_phase(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
 def cryoscope_phase_heatmap(folder, routine, qubit, format):
@@ -487,7 +498,9 @@ def cryoscope_phase_heatmap(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
 def cryoscope_phase_unwrapped(folder, routine, qubit, format):
@@ -524,7 +537,9 @@ def cryoscope_phase_unwrapped(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
 def cryoscope_phase_unwrapped_heatmap(folder, routine, qubit, format):
@@ -566,7 +581,9 @@ def cryoscope_phase_unwrapped_heatmap(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
 def cryoscope_phase_amplitude_unwrapped_heatmap(folder, routine, qubit, format):
@@ -613,7 +630,9 @@ def cryoscope_phase_amplitude_unwrapped_heatmap(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
 def cryoscope_detuning_time(folder, routine, qubit, format):
@@ -704,9 +723,12 @@ def cryoscope_detuning_time(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
+# ERROR: pfit = np.polyfit(curve_amps, curve_detunings, 2)
 def cryoscope_distorted_amplitude_time(folder, routine, qubit, format):
     data = DataUnits.load_data(folder, "data", routine, format, "data")
     durations, amplitudes = _get_flux_pulse_durations_and_amplitudes(data)
@@ -840,9 +862,12 @@ def cryoscope_distorted_amplitude_time(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
+# ERROR: pfit = np.polyfit(curve_amps, curve_detunings, 2)
 def cryoscope_reconstructed_amplitude_time(folder, routine, qubit, format):
     data = DataUnits.load_data(folder, "data", routine, format, "data")
     durations, amplitudes = _get_flux_pulse_durations_and_amplitudes(data)
@@ -1028,12 +1053,12 @@ def cryoscope_reconstructed_amplitude_time(folder, routine, qubit, format):
         yaxis_title=title_y,
         title=f"{global_title}",
     )
-    return [figs["norm"]]
+
+    fitting_report = "No fitting data"
+    return [figs["norm"]], fitting_report
 
 
 # Helper functions
-
-
 def smooth(x, window_len=11, window="hanning"):
     """smooth the data using a window with requested size.
     This method is based on the convolution of a scaled window with the

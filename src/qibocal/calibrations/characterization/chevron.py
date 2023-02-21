@@ -9,8 +9,8 @@ from qibocal.decorators import plot
 
 
 @plot("Chevron CZ", plots.duration_amplitude_msr_flux_pulse)
-# @plot("Chevron CZ - I", plots.duration_amplitude_I_flux_pulse)
-# @plot("Chevron CZ - Q", plots.duration_amplitude_Q_flux_pulse)
+@plot("Chevron CZ - I", plots.duration_amplitude_I_flux_pulse)
+@plot("Chevron CZ - Q", plots.duration_amplitude_Q_flux_pulse)
 def tune_transition(
     platform: AbstractPlatform,
     qubits: dict,

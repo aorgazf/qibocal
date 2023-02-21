@@ -219,7 +219,9 @@ def duration_amplitude_I_flux_pulse(folder, routine, qubit, format):
         xaxis2_title="duration (ns)",
         yaxis2_title="amplitude (dimensionless)",
     )
-    return [fig]
+
+    fitting_report = "No fitting data"
+    return [fig], fitting_report
 
 
 def duration_amplitude_Q_flux_pulse(folder, routine, qubit, format):
@@ -281,4 +283,6 @@ def duration_amplitude_Q_flux_pulse(folder, routine, qubit, format):
         xaxis2_title="duration (ns)",
         yaxis2_title="amplitude (dimensionless)",
     )
-    return [fig]
+
+    fitting_report = "No fitting data"
+    return [fig], fitting_report
