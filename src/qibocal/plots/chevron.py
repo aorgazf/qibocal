@@ -91,7 +91,9 @@ def landscape_2q_gate(folder, routine, qubit, format):
         xaxis2_title="theta (rad)",
         yaxis2_title="MSR (V)",
     )
-    return [fig]
+
+    fitting_report = "No fitting data"
+    return [fig], fitting_report
 
 
 def duration_amplitude_msr_flux_pulse(folder, routine, qubit, format):
@@ -153,7 +155,9 @@ def duration_amplitude_msr_flux_pulse(folder, routine, qubit, format):
         xaxis2_title="duration (ns)",
         yaxis2_title="amplitude (dimensionless)",
     )
-    return [fig]
+
+    fitting_report = "No fitting data"
+    return [fig], fitting_report
 
 
 def duration_amplitude_I_flux_pulse(folder, routine, qubit, format):
