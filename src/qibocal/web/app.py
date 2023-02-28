@@ -7,7 +7,7 @@ import pandas as pd
 import yaml
 from dash import Dash, Input, Output, dcc, html
 
-from qibocal import plots
+from qibocal.cli.builders import load_yaml
 from qibocal.data import DataUnits
 from qibocal.web.server import server
 
@@ -99,6 +99,16 @@ def get_graph(interval, url, value):
         # # multiple routines with different names in one folder
         # # should be changed to:
         # # return getattr(getattr(plots, routine), method)(data)
+
+        runcard = load_yaml(f"{folder}/runcard.yml")
+        if "monitor" in runcard:
+            if runcard["monitor"] == True:
+                from qibocal.calibrations.monitor import plots
+            else:
+                from qibocal import plots
+        else:
+            from qibocal import plots
+
         figs, fitting_report = getattr(plots, method)(folder, routine, qubit, format)
         et = time.time()
 
@@ -158,6 +168,7 @@ def get_graph(interval, url, value):
             refresh_rate * 1000,
             table,
         )
+
     except (FileNotFoundError, pd.errors.EmptyDataError):
         timestamp = datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
         return (

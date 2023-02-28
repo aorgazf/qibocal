@@ -281,7 +281,7 @@ class Data(AbstractData):
 
     def __init__(self, name=None, quantities=None):
         super().__init__(name=name)
-
+        self.options = []
         if quantities is not None:
             self.quantities = quantities
             for quantity in quantities:

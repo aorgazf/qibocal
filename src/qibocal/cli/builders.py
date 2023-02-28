@@ -2,13 +2,15 @@ import datetime
 import importlib
 import inspect
 import os
+import pathlib
 import shutil
 
 import yaml
 
 from qibocal import calibrations
 from qibocal.config import log, raise_error
-from qibocal.data import Data
+from qibocal.data import Data, DataUnits
+from qibocal.plots.utils import get_color, get_data_subfolders
 
 
 def load_yaml(path):
@@ -140,9 +142,12 @@ class ActionBuilder:
         force (bool): option to overwrite the output folder if it exists already.
     """
 
-    def __init__(self, runcard, folder=None, force=False):
-        path, self.folder = self._generate_output_folder(folder, force)
+    def __init__(self, runcard, folder=None, force=False, monitor=False):
+        self.monitor = monitor
+        self.runcard_path = runcard
         self.runcard = load_yaml(runcard)
+        path, self.folder = self._generate_output_folder(folder, force)
+
         # Qibolab default backend if not provided in runcard.
         backend_name = self.runcard.get("backend", "qibolab")
         platform_name = self.runcard.get("platform", "dummy")
@@ -164,13 +169,28 @@ class ActionBuilder:
         shutil.copy(runcard, f"{path}/runcard.yml")
         self.save_meta(path, self.folder)
 
-    @staticmethod
-    def _generate_output_folder(folder, force):
-        """Static method for generating the output folder.
+    def _generate_output_folder(self, folder, force):
+        """Static method for generating the output folder. If self.monitor is True,
+        it will inspect all directories containing a "runcard.yml" file. If
+        the self.runcard is the same, it will use the same folder. Otherwise, it will
+        create a new folder if the folder is not provided, and not forced.
+
         Args:
             folder (path): path for the output folder. If None it will be created a folder automatically
             force (bool): option to overwrite the output folder if it exists already.
         """
+        current_directory = pathlib.Path.cwd()
+
+        if self.monitor and folder is None:
+            directories_with_runcard = [
+                entry.path
+                for entry in os.scandir(current_directory)
+                if entry.is_dir() and "runcard.yml" in os.listdir(entry.path)
+            ]
+            for directory in directories_with_runcard:
+                if filecmp.cmp(self.runcard_path, f"{directory}/runcard.yml"):
+                    log.info(f"Found previous directory {directory}.")
+                    return current_directory / directory, os.path.basename(directory)
         if folder is None:
             import getpass
 
@@ -185,12 +205,29 @@ class ActionBuilder:
                 folder = f"{date}-{str(num).rjust(3, '0')}-{user}"
                 log.info(f"Trying to create directory {folder}")
         elif os.path.exists(folder) and not force:
-            raise_error(RuntimeError, f"Directory {folder} already exists.")
-        elif os.path.exists(folder) and force:
-            log.warning(f"Deleting previous directory {folder}.")
-            shutil.rmtree(os.path.join(os.getcwd(), folder))
+            if self.monitor:
+                if not os.path.exists(f"{folder}/runcard.yml") and not filecmp.cmp(
+                    self.runcard_path, f"{folder}/runcard.yml"
+                ):
+                    raise_error(
+                        ValueError,
+                        f"Directory {folder} does not contain the same runcard.",
+                    )
+                log.info(f"Found previous directory {folder}.")
+                return folder, os.path.basename(folder)
+            else:
+                raise_error(RuntimeError, f"Directory {folder} already exists.")
 
-        path = os.path.join(os.getcwd(), folder)
+        elif os.path.exists(folder) and force:
+            if not os.path.exists(f"{folder}/runcard.yml"):
+                raise_error(
+                    ValueError,
+                    f"Directory {folder} might not be a qibocal directory. Aborting its deletion.",
+                )
+            log.warning(f"Deleting previous directory {folder}.")
+            shutil.rmtree(os.path.join(current_directory, folder))
+
+        path = os.path.join(current_directory, folder)
         log.info(f"Creating directory {folder}.")
         os.makedirs(path)
         return path, folder
