@@ -41,8 +41,8 @@ def time_msr(folder, routine, qubit, format):
             data_fit = Data(
                 quantities=[
                     "qubit",
-                    "t2",
-                    "corrected_qubit_frequency",
+                    "T2",
+                    "drive_frequency",
                     "delta_frequency",
                     "popt4",
                     "popt3",
@@ -76,7 +76,7 @@ def time_msr(folder, routine, qubit, format):
             fig.add_trace(
                 go.Scatter(
                     x=data_fit.df["timestamp"],  # "%Y-%m-%d %H:%M:%S.%f" ,
-                    y=data_fit.df["t2"],
+                    y=data_fit.df["T2"],
                     name=f"q{qubit}/r{report_n} Fit",
                     line=go.scatter.Line(dash="dot"),
                     marker_color=get_color(4 * report_n + 2),
@@ -94,6 +94,6 @@ def time_msr(folder, routine, qubit, format):
         xaxis_title="Time (ns)",
         yaxis_title="Date",
         xaxis2_title="Date",
-        yaxis2_title="t2 (ns)",
+        yaxis2_title="T2 (ns)",
     )
-    return fig
+    return [fig], fitting_report

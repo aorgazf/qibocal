@@ -11,7 +11,6 @@ from qibocal.plots.utils import get_color, get_data_subfolders
 
 # T1
 def t1_time_msr(folder, routine, qubit, format):
-
     fig = make_subplots(
         rows=2,
         cols=1,
@@ -87,4 +86,4 @@ def t1_time_msr(folder, routine, qubit, format):
         xaxis_title="Time (ns)",
         yaxis_title="Date",
     )
-    return fig
+    return [fig], fitting_report

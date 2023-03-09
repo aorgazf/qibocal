@@ -179,34 +179,34 @@ def ramsey_frequency_detuned(
                 ],
             )
 
-        stop = False
-        for qubit in qubits:
-            new_t2 = float(data_fit.df[data_fit.df["qubit"] == qubit]["T2"][0])
-            corrected_qubit_freq = int(
-                data_fit.df[data_fit.df["qubit"] == qubit]["drive_frequency"][0]
-            )
+        # stop = False
+        # for qubit in qubits:
+        #     new_t2 = float(data_fit.df[data_fit.df["qubit"] == qubit]["T2"][0])
+        #     corrected_qubit_freq = int(
+        #         data_fit.df[data_fit.df["qubit"] == qubit]["drive_frequency"][0]
+        #     )
 
-            if new_t2 > qubits[qubit].T2 and len(delay_between_pulses_end) > 1:
-                print(
-                    f"t_max: {t_max} -- new t2: {new_t2} > current t2: {qubits[qubit].T2} new iteration!"
-                )
-                qubits[qubit].drive_frequency = int(corrected_qubit_freq)
-                qubits[qubit].T2 = new_t2
-                data = DataUnits(
-                    name=f"data",
-                    quantities={"wait": "ns", "t_max": "ns"},
-                    options=["qubit", "iteration"],
-                )
-            else:
-                print(
-                    f"t_max: {t_max} -- new t2: {new_t2} < current t2: {qubits[qubit].T2} stop!"
-                )
-                # corrected_qubit_freq = int(current_qubit_freqs[qubit])
-                # new_t2 = current_T2s[qubit]
-                # TODO: These best values need to be saved to the fits file so that they are returned to the user
-                stop = True
-        if stop:
-            break
+        #     if new_t2 > qubits[qubit].T2 and len(delay_between_pulses_end) > 1:
+        #         print(
+        #             f"t_max: {t_max} -- new t2: {new_t2} > current t2: {qubits[qubit].T2} new iteration!"
+        #         )
+        #         qubits[qubit].drive_frequency = int(corrected_qubit_freq)
+        #         qubits[qubit].T2 = new_t2
+        #         data = DataUnits(
+        #             name=f"data",
+        #             quantities={"wait": "ns", "t_max": "ns"},
+        #             options=["qubit", "iteration"],
+        #         )
+        #     else:
+        #         print(
+        #             f"t_max: {t_max} -- new t2: {new_t2} < current t2: {qubits[qubit].T2} stop!"
+        #         )
+        # corrected_qubit_freq = int(current_qubit_freqs[qubit])
+        # new_t2 = current_T2s[qubit]
+        # TODO: These best values need to be saved to the fits file so that they are returned to the user
+        # stop = True
+        # if stop:
+        #     break
 
     yield data
     yield ramsey_fit(

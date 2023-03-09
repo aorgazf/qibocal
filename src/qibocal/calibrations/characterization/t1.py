@@ -91,14 +91,14 @@ def t1(
                 # save data
                 yield data
                 # calculate and save fit
-                yield t1_fit(
-                    data,
-                    x="wait[ns]",
-                    y="MSR[uV]",
-                    qubits=qubits,
-                    resonator_type=platform.resonator_type,
-                    labels=["T1"],
-                )
+                # yield t1_fit(
+                #     data,
+                #     x="wait[ns]",
+                #     y="MSR[uV]",
+                #     qubits=qubits,
+                #     resonator_type=platform.resonator_type,
+                #     labels=["T1"],
+                # )
 
             for qubit in qubits:
                 ro_pulses[qubit].start = qd_pulses[qubit].duration + wait
@@ -112,18 +112,18 @@ def t1(
                 r.update(
                     {
                         "wait[ns]": wait,
-                        "qubit": qubit,
+                        "qubit": ro_pulse.qubit,
                         "iteration": iteration,
                     }
                 )
                 data.add(r)
             count += 1
     yield data
-    yield t1_fit(
-        data,
-        x="wait[ns]",
-        y="MSR[uV]",
-        qubits=qubits,
-        resonator_type=platform.resonator_type,
-        labels=["T1"],
-    )
+    # yield t1_fit(
+    #     data,
+    #     x="wait[ns]",
+    #     y="MSR[uV]",
+    #     qubits=qubits,
+    #     resonator_type=platform.resonator_type,
+    #     labels=["T1"],
+    # )

@@ -17,7 +17,7 @@ import click
 import yaml
 from qibo.config import log, raise_error
 
-from qibocal.cli.builders import ActionBuilder, load_yaml
+from qibocal.cli.builders import ActionBuilder, MonitorBuilder, load_yaml
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -313,7 +313,7 @@ def monitor(runcard, folder, force=None, terminate=None, local=None):
         with open(cache_dir / "nohup.int", "w") as f:
             f.write(str(process.pid + 1))
     else:
-        play_action_card()
+        play_action_card(runcard, folder, force)
 
 
 def monitor_process(cache_dir, runcard, qpu, folder, force):
@@ -374,7 +374,7 @@ def monitor_process(cache_dir, runcard, qpu, folder, force):
 
 def play_action_card(runcard, folder, force):
     time.sleep(1)
-    builder = ActionBuilder(runcard, folder, force, monitor=True)
+    builder = MonitorBuilder(runcard, folder, force)
     builder.execute()
     builder.dump_report()
 
