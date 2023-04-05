@@ -13,7 +13,7 @@ def time_msr(folder, routine, qubit, format):
 
     fig = make_subplots(
         rows=1,
-        cols=1,
+        cols=2,
         horizontal_spacing=0.1,
         vertical_spacing=0.1,
         subplot_titles=("MSR (V)",),
@@ -54,7 +54,7 @@ def time_msr(folder, routine, qubit, format):
 
         iterations = data.df["iteration"].unique()
         waits = data.df["wait"].unique()
-        data.df = data.df.drop(columns=["i", "q", "phase", "qubit"])
+        data.df = data.df.drop(columns=["i", "q", "qubit"])
 
         if len(iterations) > 1:
             opacity = 0.3
@@ -74,6 +74,20 @@ def time_msr(folder, routine, qubit, format):
                 ),
                 row=1,
                 col=1,
+            )
+            # add phase
+            fig.add_trace(
+                go.Scatter(
+                    x=iteration_data["wait"],
+                    y=iteration_data["phase"],
+                    marker_color=get_color(report_n),
+                    opacity=opacity,
+                    name=f"q{qubit}/r{report_n}",
+                    showlegend=False,
+                    legendgroup=f"q{qubit}/r{report_n}",
+                ),
+                row=1,
+                col=2,
             )
 
         if len(iterations) > 1:
