@@ -46,21 +46,22 @@ def tune_transition(
 
     """
     # TODO: generalize this for more qubits?
-    if len(qubits) > 1:
-        raise NotImplementedError
+    # if len(qubits) > 1:
+    #     raise NotImplementedError
 
-    qubit = list(qubits.keys())[0]
+    # qubit = list(qubits.keys())[0]
+    qubit = "A4"
 
+    highfreq = "A3"
+    lowfreq = "A4"
     platform.reload_settings()
 
-    initialize_1 = platform.create_RX_pulse(qubit, start=0, relative_phase=0)
-    initialize_2 = platform.create_RX_pulse(2, start=0, relative_phase=0)
+    initialize_1 = platform.create_RX_pulse(highfreq, start=0, relative_phase=0)
+    initialize_2 = platform.create_RX_pulse(lowfreq, start=0, relative_phase=0)
 
-    highfreq = 2
-    lowfreq = qubit
-    if qubit > 2:
-        highfreq = qubit
-        lowfreq = 2
+    # if qubit > 2:
+    #     highfreq = qubit
+    #     lowfreq = 2
 
     flux_sequence, _ = platform.create_CZ_pulse_sequence(
         (highfreq, lowfreq), start=initialize_1.finish
