@@ -7,8 +7,10 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
+from qibo import gates
 from qibo.models import Circuit
 from qibo.noise import NoiseModel
+from qibo.states import CircuitResult
 
 from qibocal.calibrations.niGSC.basics.utils import experiment_directory
 from qibocal.config import raise_error
@@ -107,6 +109,18 @@ class Experiment:
         obj = cls(circuitfactory, data=data, nshots=nshots)
         return obj
 
+    def save_circuits(self, path: str | None = None) -> str:
+        """Creates a path if None given and pickles relevant data from ``self.data``
+        and if ``self.circuitfactory`` is a list that one too.
+
+        Returns:
+            (str): The path of stored experiment.
+        """
+        # Only if the circuit factory is a list it will be stored.
+        if isinstance(self.circuitfactory, list):
+            with open(path, "wb") as f:
+                pickle.dump(self.circuitfactory, f)
+
     def save(self, path: str | None = None) -> str:
         """Creates a path if None given and pickles relevant data from ``self.data``
         and if ``self.circuitfactory`` is a list that one too.
@@ -121,10 +135,6 @@ class Experiment:
             self.path = experiment_directory("rb")
         else:
             self.path = path if path[-1] == "/" else f"{path}/"
-        # Only if the circuit factory is a list it will be stored.
-        if isinstance(self.circuitfactory, list):
-            with open(f"{self.path}circuits.pkl", "wb") as f:
-                pickle.dump(self.circuitfactory, f)
         # And only if data is not None the data list (full of dicionaries) will be
         # stored.
         if self.data is not None:
@@ -218,5 +228,68 @@ class Experiment:
 
         if self.noise_model is not None:
             circuit = self.noise_model.apply(circuit)
+
         samples = circuit(nshots=self.nshots).samples()
         return {"samples": samples}
+
+
+class PulseExperiment(Experiment):
+    def __init__(
+        self,
+        circuitfactory: Iterable | None,
+        data: Iterable | None = None,
+        nshots: int | None = 128,
+        noise_model: NoiseModel | None = None,
+    ) -> None:
+        super().__init__(circuitfactory, data, nshots, noise_model)
+        from qibo.backends import GlobalBackend
+
+        self.backend = GlobalBackend()
+        self.platform = self.backend.platform
+
+    def perform(self, sequential_task: Callable[[Circuit, dict], dict]) -> None:
+        return super().perform(sequential_task)
+
+    def execute(self, circuit: Circuit, datarow: dict) -> dict:
+        sequence, native_circuit = self.circuit_to_sequence(circuit)
+        if not self.platform.is_connected:
+            self.platform.connect()
+            self.platform.setup()
+
+        # Execute the pulse sequence on the platform
+        self.platform.start()
+        readout = self.platform.execute_pulse_sequence(sequence, self.nshots)
+        self.platform.stop()
+        result = CircuitResult(self.backend, native_circuit, readout, self.nshots)
+
+        return {"samples": result.samples()}
+
+    def circuit_to_sequence(self, circuit):
+        from qibolab.pulses import PulseSequence
+
+        moment_start = 0
+        native_circuit = Circuit(circuit.nqubits)
+
+        # Define PulseSequence
+        sequence = PulseSequence()
+
+        for gate in circuit.queue:
+            if gate.__class__ is gates.I:
+                pass
+            elif gate.__class__ is gates.M:
+                native_circuit.add(gate)
+            else:
+                native_circuit.add(gate)
+                sequence.add(
+                    self.platform.create_RX_pulse(
+                        gate.qubit,
+                        start=max(sequence.get_qubit_pulses(0).finish, moment_start),
+                        relative_phase=0,
+                    )
+                )
+        sequence.add(
+            self.platform.create_MZ_pulse(
+                0, start=max(sequence.get_qubit_pulses().finish, moment_start)
+            )
+        )
+        return sequence, native_circuit

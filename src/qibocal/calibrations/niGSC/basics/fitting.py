@@ -86,7 +86,10 @@ def esprit(
     # Calculte the solution.
     spectralMatrix = np.linalg.pinv(U_signal[:-1,]) @ U_signal[1:,]
     # Calculate the poles/eigenvectors and space them right. Return them.
-    return np.linalg.eigvals(spectralMatrix) * sampleRate
+
+    decays = np.linalg.eigvals(spectralMatrix)
+    decays = np.array(decays, dtype=complex)
+    return decays**sampleRate
 
 
 def fit_exp1B_func(
@@ -183,8 +186,14 @@ def fit_expn_func(
     # TODO how are the errors estimated?
     # TODO the data has to have a sufficiently big size, check that.
     decays = esprit(np.array(xdata), np.array(ydata), n)
-    vandermonde = np.vander(decays, N=xdata[-1] + 1, increasing=True)
-    vandermonde = np.take(vandermonde, xdata, axis=1)
+    print(decays)
+    sampleRate = 1 / ((xdata[1]) - xdata[0])
+    vandermonde = np.array([decays**x for x in xdata]).T
+
+    #     vandermonde = np.vander(decays ** (1 / sampleRate), N=len(xdata), increasing=True)
+    print(vandermonde.round(3))
+    # vandermonde = np.take(vandermonde, np.array(xdata * sampleRate, dtype=int), axis=1)
+    # print(vandermonde.round(3))
     alphas = np.linalg.pinv(vandermonde.T) @ np.array(ydata).reshape(-1, 1).flatten()
     return tuple([*alphas, *decays]), (0,) * (len(alphas) + len(decays))
 

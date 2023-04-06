@@ -119,6 +119,8 @@ class niGSCactionParser(ActionParser):
         experiment = self.module.ModuleExperiment(
             factory, nshots=self.nshots, noise_model=self.noise_model
         )
+        # Store the initial circuits
+        experiment.save_circuits(f"{self.path}/circuits.pkl")
         # Execute the circuits in the experiment.
         experiment.perform(experiment.execute)
         # Run the row by row postprocessing.

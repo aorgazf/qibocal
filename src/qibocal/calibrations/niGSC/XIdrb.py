@@ -29,7 +29,7 @@ from qibo.quantum_info import comp_basis_to_pauli
 
 import qibocal.calibrations.niGSC.basics.fitting as fitting_methods
 from qibocal.calibrations.niGSC.basics.circuitfactory import ZkFilteredCircuitFactory
-from qibocal.calibrations.niGSC.basics.experiment import Experiment
+from qibocal.calibrations.niGSC.basics.experiment import Experiment, PulseExperiment
 from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig, update_fig
 from qibocal.calibrations.niGSC.basics.rb_validation import filtered_decay_parameters
 
@@ -42,7 +42,10 @@ class ModuleFactory(ZkFilteredCircuitFactory):
 
     @property
     def gate_group(self):
-        return [gates.I(0), gates.X(0)]
+        return [
+            gates.I(0),
+            gates.X(0),
+        ]  # gates.Unitary(np.array([[0, 1], [1, 0]]), 0)]
 
 
 # Define the experiment class for this specific module.
@@ -55,6 +58,7 @@ class ModuleExperiment(Experiment):
         noise_model: NoiseModel = None,
     ) -> None:
         super().__init__(circuitfactory, data, nshots, noise_model)
+        self.circuitfactory = list(circuitfactory)
         self.name = "XIdrb"
 
     def execute(self, circuit: Circuit, datarow: dict) -> dict:
@@ -174,7 +178,7 @@ def gate_group(nqubits=1):
 def irrep_info(nqubits=1):
     """
     Infromation corresponding to the irreducible representation of the XId gate group.
-    
+
     Returns:
         tuple: (basis, index, size, multiplicity) of the sign irrep
     """
@@ -200,7 +204,7 @@ def add_validation(
     validation_label = "validation_imag" if "popt_imag" in data[0] else "validation"
     coefficients, decay_parameters = filtered_decay_parameters(
         experiment.name,
-        experiment.circuitfactory.nqubits,
+        1,
         experiment.noise_model,
         with_coefficients=True,
         N=N,
