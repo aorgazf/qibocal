@@ -8,7 +8,11 @@ from qibo import gates
 from qibo.models import Circuit
 from qibo.quantum_info.random_ensembles import random_clifford
 
-from qibocal.calibrations.niGSC.basics.utils import ONEQ_GATES, ONEQ_GATES_MATRICES
+from qibocal.calibrations.niGSC.basics.utils import (
+    ONEQ_GATES,
+    ONEQ_GATES_MATRICES,
+    single_clifford_gates,
+)
 from qibocal.config import raise_error
 
 
@@ -76,7 +80,7 @@ class CircuitFactory:
             Circuit: the circuit with ``depth`` many layers.
         """
         # Initiate the ``Circuit`` object with the amount of active qubits.
-        circuit = Circuit(len(self.qubits))
+        circuit = Circuit(len(self.qubits), density_matrix=True)
         # Go throught the depth/layers of the circuit and add gate layers.
         for _ in range(depth):
             circuit.add(self.gate_layer())
@@ -138,11 +142,18 @@ class SingleCliffordsFactory(CircuitFactory):
         gates_list = []
         # Make sure the shape is suitable for iterating over the Clifford matrices returned
         # by the ``random_clifford`` function.
-        random_cliffords = random_clifford(self.qubits).reshape(len(self.qubits), 2, 2)
-        # Make gates out of the unitary matrices.
-        for count, rand_cliff in enumerate(random_cliffords):
-            # Build the gate with the random Clifford matrix, let is act on the right qubit.
-            gates_list.append(gates.Unitary(rand_cliff, count))
+        if len(self.qubits) == 1:
+            # Get random single qubit Clifford gate
+            random_cliffords = np.random.choice(single_clifford_gates(0))
+            gates_list.append(random_cliffords)
+        else:
+            random_cliffords = random_clifford(self.qubits).reshape(
+                len(self.qubits), 2, 2
+            )
+            # Make gates out of the unitary matrices.
+            for count, rand_cliff in enumerate(random_cliffords):
+                # Build the gate with the random Clifford matrix, let is act on the right qubit.
+                gates_list.append(gates.Unitary(rand_cliff, count))
         return gates_list
 
 

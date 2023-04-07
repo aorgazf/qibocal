@@ -47,7 +47,8 @@ class ModuleExperiment(Experiment):
         # Find sum of k where each gate of a circuit is RX(k*pi/2)
         rx_k = 0
         for gate in circuit.gates_of_type("rx"):
-            rx_k += 1 if (gate[-1].parameters[0] == np.pi / 2) else 3
+            rx_k += int(gate[-1].parameters[0] / (np.pi / 2))
+            # rx_k += 1 if (gate[-1].parameters[0] == np.pi / 2) else 3
         datadict["sumK"] = rx_k + (circuit.gate_types["x"] * 2)
         return datadict
 

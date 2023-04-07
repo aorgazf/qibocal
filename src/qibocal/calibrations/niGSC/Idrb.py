@@ -160,7 +160,7 @@ def gate_group(nqubits=1):
     """
     Id gate group
     """
-    return [gates.I(0)]
+    return [gates.RX(0, 2 * np.pi)]
 
 
 def irrep_info(nqubits=1):

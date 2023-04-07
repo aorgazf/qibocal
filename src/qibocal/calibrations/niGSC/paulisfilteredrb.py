@@ -17,14 +17,22 @@ from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig, upda
 from qibocal.calibrations.niGSC.basics.rb_validation import filtered_decay_parameters
 from qibocal.config import raise_error
 
-
 # matrices = QiboMatrices()
-pauli_list = []
-for p in [matrices.I, matrices.X, matrices.Y, matrices.Z]:
-    pauli_list.append(gates.Unitary(p, 0))
-    pauli_list.append(gates.Unitary(-p, 0))
-    pauli_list.append(gates.Unitary(1j * p, 0))
-    pauli_list.append(gates.Unitary(-1j * p, 0))
+pauli_list = [
+    gates.I(0),
+    gates.I(0),
+    gates.RX(0, np.pi),
+    gates.RX(0, -np.pi),
+    gates.RY(0, np.pi),
+    gates.RY(0, -np.pi),
+    gates.RZ(0, np.pi),
+    gates.RZ(0, -np.pi),
+]
+# for p in [matrices.I, matrices.X, matrices.Y, matrices.Z]:
+#     pauli_list.append(gates.Unitary(p, 0))
+#     pauli_list.append(gates.Unitary(-p, 0))
+#     pauli_list.append(gates.Unitary(1j * p, 0))
+#     pauli_list.append(gates.Unitary(-1j * p, 0))
 
 
 def is_xy(g):
@@ -47,11 +55,8 @@ class ModuleFactory(CircuitFactory):
         # Initiate the empty circuit from qibo with 'self.nqubits'
         # many qubits.
         circuit = Circuit(1, density_matrix=True)
-        # There are only two gates to choose from for every qubit.
-        # Draw sequence length many zeros and ones.
-        random_ints = np.random.randint(0, len(pauli_list), size=depth)
         # Get the gates with random_ints as indices.
-        gate_lists = np.take(pauli_list, random_ints)
+        gate_lists = np.random.choice(pauli_list, size=depth)
         # Add gates to circuit.
         circuit.add(gate_lists)
         circuit.add(gates.M(0))
@@ -68,15 +73,19 @@ class ModuleExperiment(Experiment):
         noise_model: NoiseModel = None,
     ) -> None:
         super().__init__(circuitfactory, data, nshots, noise_model)
+        self.prebuild()
         self.name = "paulisfilteredrb"
 
     def execute(self, circuit: Circuit, datarow: dict) -> dict:
         datadict = super().execute(circuit, datarow)
         datadict["depth"] = circuit.ngates - 1
         # Find the number of X and Y gates in the circuit
-        countXY = circuit.gate_types["x"] + circuit.gate_types["y"]
-        for gate in circuit.gates_of_type("Unitary"):
-            countXY += int(is_xy(gate[-1]))
+
+        # countXY = circuit.gate_types["x"] + circuit.gate_types["y"]
+        # for gate in circuit.gates_of_type("Unitary"):
+        #     countXY += int(is_xy(gate[-1]))
+
+        countXY = circuit.gate_types["rx"] + circuit.gate_types["ry"]
         datadict["countXY"] = countXY
         return datadict
 
@@ -219,7 +228,7 @@ def add_validation(
     data = dataframe.to_dict("records")
     coefficients, decay_parameters = filtered_decay_parameters(
         experiment.name,
-        experiment.circuitfactory.nqubits,
+        1,
         experiment.noise_model,
         with_coefficients=True,
         N=N,

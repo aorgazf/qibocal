@@ -5,7 +5,7 @@ from os.path import isdir
 from typing import Union
 
 import numpy as np
-from qibo import matrices
+from qibo import gates, matrices
 from qibo.models import Circuit
 from qibo.noise import NoiseModel
 from qibo.quantum_info import vectorization
@@ -159,3 +159,37 @@ def number_to_str(number: Union[int, float, complex]) -> str:
             "{:.3f}".format(np.real(number)) if np.abs(np.real(number)) > 1e-4 else "0"
         )
     return the_str
+
+
+def single_clifford_gates(qubit=0):
+    return [
+        # Virtual gates
+        gates.I(qubit),
+        gates.Z(qubit),
+        gates.RZ(qubit, np.pi / 2),
+        gates.RZ(qubit, -np.pi / 2),
+        # pi rotations
+        gates.RX(qubit, np.pi),
+        gates.RY(qubit, np.pi),
+        # pi/2 rotations
+        gates.RX(qubit, np.pi / 2),
+        gates.RX(qubit, -np.pi / 2),
+        gates.RY(qubit, np.pi / 2),
+        gates.RY(qubit, -np.pi / 2),
+        # 2pi/3 rotations
+        gates.U3(qubit, np.pi / 2, -np.pi / 2, 0),  # Rx(pi/2)Ry(pi/2)
+        gates.U3(qubit, np.pi / 2, -np.pi / 2, np.pi),  # Rx(pi/2)Ry(-pi/2)
+        gates.U3(qubit, np.pi / 2, np.pi / 2, 0),  # Rx(-pi/2)Ry(pi/2)
+        gates.U3(qubit, np.pi / 2, np.pi / 2, -np.pi),  # Rx(-pi/2)Ry(-pi/2)
+        gates.U3(qubit, np.pi / 2, 0, np.pi / 2),  # Ry(pi/2)Rx(pi/2)
+        gates.U3(qubit, np.pi / 2, 0, -np.pi / 2),  # Ry(pi/2)Rx(-pi/2)
+        gates.U3(qubit, np.pi / 2, -np.pi, np.pi / 2),  # Ry(-pi/2)Rx(pi/2)
+        gates.U3(qubit, np.pi / 2, np.pi, -np.pi / 2),  # Ry(-pi/2)Rx(-pi/2)
+        # Hadamard-like
+        gates.U3(qubit, np.pi / 2, -np.pi, 0),  # X Ry(pi/2)
+        gates.U3(qubit, np.pi / 2, 0, np.pi),  # X Ry(-pi/2)
+        gates.U3(qubit, np.pi / 2, np.pi / 2, np.pi / 2),  # Y Rx(pi/2)
+        gates.U3(qubit, np.pi / 2, -np.pi / 2, -np.pi / 2),  # Y Rx(pi/2)
+        gates.U3(qubit, np.pi, -np.pi / 4, np.pi / 4),  # Rx(pi/2)Ry(pi/2)Rx(pi/2)
+        gates.U3(qubit, np.pi, np.pi / 4, -np.pi / 4),  # Rx(-pi/2)Ry(pi/2)Rx(-pi/2)
+    ]
