@@ -45,15 +45,42 @@ def tune_transition(
         data (DataSet): Measurement data for both the high and low frequency qubits.
 
     """
-    # TODO: generalize this for more qubits?
-    # if len(qubits) > 1:
-    #     raise NotImplementedError
-
-    # qubit = list(qubits.keys())[0]
-    qubit = "A4"
+    # qubit_control = []
+    # qubit_target = []
+    # for i, q in enumerate(qubits):
+    #     topology = platform.topology[platform.qubits.index(q)]
+    #     for j in range(len(platform.qubits)):
+    #         if (
+    #             topology[j] == 1
+    #             and platform.qubits[j] != q
+    #             and platform.qubits[j] in qubits
+    #         ):
+    #             if (
+    #                 platform.qubits[q].drive_frequency
+    #                 > platform.qubits[[platform.qubits[j]]].drive_frequency
+    #             ):
+    #                 if (
+    #                     platform.qubits[j]
+    #                     not in np.array(qubit_control)[np.array(qubit_target) == q]
+    #                 ):
+    #                     qubit_control += [platform.qubits[j]]
+    #                     qubit_target += [q]
+    #             if (
+    #                 platform.characterization["single_qubit"][q]["qubit_freq"]
+    #                 < platform.characterization["single_qubit"][platform.qubits[j]][
+    #                     "qubit_freq"
+    #                 ]
+    #             ):
+    #                 if (
+    #                     platform.qubits[j]
+    #                     not in np.array(qubit_target)[np.array(qubit_control) == q]
+    #                 ):
+    #                     qubit_control += [q]
+    #                     qubit_target += [platform.qubits[j]]
 
     highfreq = "A3"
     lowfreq = "A4"
+
     platform.reload_settings()
 
     initialize_1 = platform.create_RX_pulse(highfreq, start=0, relative_phase=0)
@@ -79,7 +106,7 @@ def tune_transition(
             "flux_pulse_duration": "ns",
             "flux_pulse_amplitude": "dimensionless",
         },
-        options=["q_freq"],
+        options=["q_freq", "probability"],
     )
 
     amplitudes = np.arange(
@@ -106,29 +133,31 @@ def tune_transition(
     for duration in durations:
         for flux_pulse in flux_sequence.qf_pulses:
             flux_pulse.duration = duration
+        measure_lowfreq.start = flux_pulse.start + duration
+        measure_highfreq.start = flux_pulse.start + duration
 
         results = platform.sweep(
-            sequence, sweeper, nshots=nshots, relaxation_time=relaxation_time
+            sequence,
+            sweeper,
+            nshots=nshots,
+            relaxation_time=relaxation_time,
+            average=False,
         )
 
-        res_temp = results[measure_lowfreq.serial].to_dict(average=False)
-        res_temp.update(
-            {
-                "flux_pulse_duration[ns]": len(amplitudes) * [duration],
-                "flux_pulse_amplitude[dimensionless]": amplitudes,
-                "q_freq": len(amplitudes) * ["low"],
-            }
-        )
+        res_temp = {
+            "flux_pulse_duration[ns]": len(amplitudes) * [duration],
+            "flux_pulse_amplitude[dimensionless]": amplitudes,
+            "q_freq": len(amplitudes) * ["low"],
+            "probability": np.mean(results[measure_lowfreq.serial].shots, axis=0),
+        }
         data.add_data_from_dict(res_temp)
 
-        res_temp = results[measure_highfreq.serial].to_dict(average=False)
-        res_temp.update(
-            {
-                "flux_pulse_duration[ns]": len(amplitudes) * [duration],
-                "flux_pulse_amplitude[dimensionless]": amplitudes,
-                "q_freq": len(amplitudes) * ["high"],
-            }
-        )
+        res_temp = {
+            "flux_pulse_duration[ns]": len(amplitudes) * [duration],
+            "flux_pulse_amplitude[dimensionless]": amplitudes,
+            "q_freq": len(amplitudes) * ["high"],
+            "probability": np.mean(results[measure_highfreq.serial].shots, axis=0),
+        }
         data.add_data_from_dict(res_temp)
         yield data
 

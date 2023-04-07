@@ -38,7 +38,7 @@ def landscape_2q_gate(folder, routine, qubit, format):
             x=data.get_values("theta", "rad")[data.df["q_freq"] == "high"][
                 data.df["setup"] == "I"
             ].to_numpy(),
-            y=data.get_values("MSR", "V")[data.df["q_freq"] == "high"][
+            y=data.get_values("probability")[data.df["q_freq"] == "high"][
                 data.df["setup"] == "I"
             ].to_numpy(),
         ),
@@ -51,7 +51,7 @@ def landscape_2q_gate(folder, routine, qubit, format):
             x=data.get_values("theta", "rad")[data.df["q_freq"] == "high"][
                 data.df["setup"] == "X"
             ].to_numpy(),
-            y=data.get_values("MSR", "V")[data.df["q_freq"] == "high"][
+            y=data.get_values("probability")[data.df["q_freq"] == "high"][
                 data.df["setup"] == "X"
             ].to_numpy(),
         ),
@@ -64,7 +64,7 @@ def landscape_2q_gate(folder, routine, qubit, format):
             x=data.get_values("theta", "rad")[data.df["q_freq"] == "low"][
                 data.df["setup"] == "I"
             ].to_numpy(),
-            y=data.get_values("MSR", "V")[data.df["q_freq"] == "low"][
+            y=data.get_values("probability")[data.df["q_freq"] == "low"][
                 data.df["setup"] == "I"
             ].to_numpy(),
         ),
@@ -77,7 +77,7 @@ def landscape_2q_gate(folder, routine, qubit, format):
             x=data.get_values("theta", "rad")[data.df["q_freq"] == "low"][
                 data.df["setup"] == "X"
             ].to_numpy(),
-            y=data.get_values("MSR", "V")[data.df["q_freq"] == "low"][
+            y=data.get_values("probability")[data.df["q_freq"] == "low"][
                 data.df["setup"] == "X"
             ].to_numpy(),
         ),
@@ -125,7 +125,7 @@ def duration_amplitude_msr_flux_pulse(folder, routine, qubit, format):
             y=data.get_values("flux_pulse_amplitude", "dimensionless")[
                 data.df["q_freq"] == "high"
             ].to_numpy(),
-            z=data.get_values("MSR", "V")[data.df["q_freq"] == "high"].to_numpy(),
+            z=data.get_values("probability")[data.df["q_freq"] == "high"].to_numpy(),
             colorbar_x=0.45,
         ),
         row=1,
@@ -139,7 +139,7 @@ def duration_amplitude_msr_flux_pulse(folder, routine, qubit, format):
             y=data.get_values("flux_pulse_amplitude", "dimensionless")[
                 data.df["q_freq"] == "low"
             ].to_numpy(),
-            z=data.get_values("MSR", "V")[data.df["q_freq"] == "low"].to_numpy(),
+            z=data.get_values("probability")[data.df["q_freq"] == "low"].to_numpy(),
             colorbar_x=1.0,
         ),
         row=1,
@@ -218,11 +218,8 @@ def duration_amplitude_I_flux_pulse(folder, routine, qubit, format):
 
 def duration_amplitude_Q_flux_pulse(folder, routine, qubit, format):
     fitting_report = "No fitting data"
-    highfreq = 2
-    lowfreq = qubit
-    if qubit > 2:
-        highfreq = qubit
-        lowfreq = 2
+    highfreq = "A3"
+    lowfreq = "A4"
 
     subfolder = get_data_subfolders(folder)[0]
     data = DataUnits.load_data(
