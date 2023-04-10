@@ -44,7 +44,7 @@ class ModuleFactory(ZkFilteredCircuitFactory):
     def gate_group(self):
         return [
             gates.I(0),
-            gates.X(0),
+            gates.RX(0, np.pi),
         ]  # gates.Unitary(np.array([[0, 1], [1, 0]]), 0)]
 
 
