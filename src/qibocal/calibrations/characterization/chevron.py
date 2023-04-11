@@ -91,13 +91,13 @@ def tune_transition(
     #     lowfreq = 2
 
     flux_sequence, _ = platform.create_CZ_pulse_sequence(
-        (highfreq, lowfreq), start=initialize_1.finish
+        (highfreq, lowfreq), start=initialize_1.se_finish
     )
     measure_lowfreq = platform.create_qubit_readout_pulse(
-        lowfreq, start=flux_sequence.finish
+        lowfreq, start=flux_sequence.se_finish
     )
     measure_highfreq = platform.create_qubit_readout_pulse(
-        highfreq, start=flux_sequence.finish
+        highfreq, start=flux_sequence.se_finish
     )
 
     data = DataUnits(
@@ -133,8 +133,8 @@ def tune_transition(
     for duration in durations:
         for flux_pulse in flux_sequence.qf_pulses:
             flux_pulse.duration = duration
-        measure_lowfreq.start = flux_pulse.start + duration
-        measure_highfreq.start = flux_pulse.start + duration
+        # measure_lowfreq.start = flux_pulse.start + duration
+        # measure_highfreq.start = flux_pulse.start + duration
 
         results = platform.sweep(
             sequence,
