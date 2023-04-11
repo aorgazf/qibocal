@@ -1,6 +1,6 @@
-platform: dummy #qw5q_gold_qblox
+platform: qw5q_gold_qblox
 
-qubits: [0, 1, 2, 3, 4]
+qubits: [2]
 
 format: csv
 
@@ -44,17 +44,17 @@ actions:
   #     nshots: 1000
   #     relaxation_time: 0
 
-  # - id: resonator spectroscopy low power
-  #   priority: 0
-  #   operation: resonator_spectroscopy
-  #   # main: resonator flux dependence
-  #   parameters:
-  #     freq_width: 10_000_000
-  #     freq_step: 1_000_000
-  #     amplitude: 0.4
-  #     power_level: low
-  #     nshots: 1024
-  #     relaxation_time: 0 #50
+  - id: resonator spectroscopy low power
+    priority: 0
+    operation: resonator_spectroscopy
+    main: qubit spectroscopy
+    parameters:
+      freq_width: 10_000_000
+      freq_step: 1_000_000
+      amplitude: 0.4
+      power_level: low
+      nshots: 1024
+      relaxation_time: 0 #50
 
   # - id: resonator flux dependence
   #   priority: 10
@@ -69,17 +69,17 @@ actions:
   #     nshots: 1000
   #     relaxation_time: 0
 
-  # - id: qubit spectroscopy
-  #   priority: 0
-  #   operation: qubit_spectroscopy
-  #   #ext: qubit flux dependence
-  #   parameters:
-  #     drive_amplitude: 0.005
-  #     drive_duration: 2000
-  #     freq_width: 100_000_000
-  #     freq_step: 100_000
-  #     nshots: 1000
-  #     relaxation_time: 0
+  - id: qubit spectroscopy
+    priority: 10
+    operation: qubit_spectroscopy
+    #ext: qubit flux dependence
+    parameters:
+      drive_amplitude: 0.5
+      drive_duration: 40
+      freq_width: 10_000_000
+      freq_step: 1_000_000
+      nshots: 1024
+      relaxation_time: 0
 
   # - id: qubit flux dependence
   #   priority: 10
@@ -107,14 +107,14 @@ actions:
   #     relaxation_time: 0
   #     nshots: 1000
 
-  - id: t1
-    priority: 0
-    operation: t1
-    # main: ramsey
-    parameters:
-      delay_before_readout_start: 16
-      delay_before_readout_end: 500
-      delay_before_readout_step: 20
+  # - id: t1
+  #   priority: 0
+  #   operation: t1
+  #   # main: ramsey
+  #   parameters:
+  #     delay_before_readout_start: 16
+  #     delay_before_readout_end: 500
+  #     delay_before_readout_step: 20
 
   # - id: ramsey
   #   priority: 0
