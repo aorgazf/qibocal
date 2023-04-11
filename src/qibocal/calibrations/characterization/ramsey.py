@@ -94,7 +94,7 @@ def ramsey_frequency_detuned(
     data = DataUnits(
         name="data",
         quantities={"wait": "ns", "t_max": "ns"},
-        options=["qubit", "iteration"],
+        options=["qubit", "iteration", "probability"],
     )
 
     delay_between_pulses_end = np.array(delay_between_pulses_end)
@@ -158,6 +158,9 @@ def ramsey_frequency_detuned(
                             "t_max[ns]": t_max,
                             "qubit": ro_pulse.qubit,
                             "iteration": iteration,
+                            "probability": np.mean(
+                                results[ro_pulse.serial].shots, axis=0
+                            ),
                         }
                     )
                     data.add(r)
@@ -229,6 +232,7 @@ def ramsey_frequency_detuned(
 def ramsey(
     platform: AbstractPlatform,
     qubits: dict,
+    offset: float,
     delay_between_pulses_start,
     delay_between_pulses_end,
     delay_between_pulses_step,
@@ -285,9 +289,11 @@ def ramsey(
     sequence = PulseSequence()
     for qubit in qubits:
         RX90_pulses1[qubit] = platform.create_RX90_pulse(qubit, start=0)
+        RX90_pulses1[qubit].frequency = RX90_pulses1[qubit].frequency + offset
         RX90_pulses2[qubit] = platform.create_RX90_pulse(
             qubit, start=RX90_pulses1[qubit].finish
         )
+        RX90_pulses2[qubit].frequency = RX90_pulses2[qubit].frequency + offset
         ro_pulses[qubit] = platform.create_qubit_readout_pulse(
             qubit, start=RX90_pulses2[qubit].finish
         )
@@ -311,7 +317,7 @@ def ramsey(
     data = DataUnits(
         name=f"data",
         quantities={"wait": "ns", "t_max": "ns"},
-        options=["qubit", "iteration"],
+        options=["qubit", "iteration", "probability"],
     )
 
     # repeat the experiment as many times as defined by software_averages
@@ -358,6 +364,7 @@ def ramsey(
                         "t_max[ns]": delay_between_pulses_end,
                         "qubit": ro_pulse.qubit,
                         "iteration": iteration,
+                        "probability": np.mean(results[ro_pulse.serial].shots, axis=0),
                     }
                 )
                 data.add(r)

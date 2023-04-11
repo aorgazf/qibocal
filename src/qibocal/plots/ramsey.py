@@ -32,7 +32,7 @@ def time_msr(folder, routine, qubit, format):
             data = DataUnits(
                 name=f"data",
                 quantities={"wait": "ns", "t_max": "ns"},
-                options=["qubit", "iteration"],
+                options=["qubit", "iteration", "probability"],
             )
         try:
             data_fit = load_data(folder, subfolder, routine, format, "fits")
@@ -153,6 +153,31 @@ def time_msr(folder, routine, qubit, format):
         uirevision="0",  # ``uirevision`` allows zooming while live plotting
         xaxis_title="Time (ns)",
         yaxis_title="MSR (uV)",
+    )
+
+    figures.append(fig)
+
+    # Plot the probability on a new figure
+    fig = go.Figure()
+    for iteration in iterations:
+        iteration_data = data.df[data.df["iteration"] == iteration]
+        fig.add_trace(
+            go.Scatter(
+                x=iteration_data["wait"],
+                y=iteration_data["probability"],
+                marker_color=get_color(report_n),
+                opacity=opacity,
+                name=f"q{qubit}/r{report_n}",
+                showlegend=not bool(iteration),
+                legendgroup=f"q{qubit}/r{report_n}",
+            )
+        )
+
+    fig.update_layout(
+        showlegend=True,
+        uirevision="0",  # ``uirevision`` allows zooming while live plotting
+        xaxis_title="Time (ns)",
+        yaxis_title="Probability",
     )
 
     figures.append(fig)
