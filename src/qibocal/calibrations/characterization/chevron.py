@@ -10,7 +10,7 @@ from qibocal.decorators import plot
 @plot("Chevron CZ", plots.duration_amplitude_msr_flux_pulse)
 @plot("Chevron CZ - I", plots.duration_amplitude_I_flux_pulse)
 @plot("Chevron CZ - Q", plots.duration_amplitude_Q_flux_pulse)
-def tune_transition(
+def tune_transition_sweep(
     platform,
     qubits: dict,
     flux_pulse_duration_start,
@@ -93,11 +93,162 @@ def tune_transition(
     flux_sequence, _ = platform.create_CZ_pulse_sequence(
         (highfreq, lowfreq), start=initialize_1.se_finish
     )
+    # find flux pulse that is targeting the ``highfreq`` qubit
+    flux_pulse = next(
+        iter(
+            pulse
+            for pulse in flux_sequence
+            if isinstance(pulse, FluxPulse) and pulse.qubit == highfreq
+        )
+    )
+    # set initial duration to 1 until the QM driver is fixed
+    flux_pulse.duration = 1
+
     measure_lowfreq = platform.create_qubit_readout_pulse(
-        lowfreq, start=flux_sequence.se_finish
+        lowfreq, start=flux_sequence.finish
     )
     measure_highfreq = platform.create_qubit_readout_pulse(
-        highfreq, start=flux_sequence.se_finish
+        highfreq, start=flux_sequence.finish
+    )
+
+    data = DataUnits(
+        name=f"data_q{lowfreq}{highfreq}",
+        quantities={
+            "flux_pulse_duration": "ns",
+            "flux_pulse_amplitude": "dimensionless",
+        },
+        options=["q_freq", "probability"],
+    )
+
+    amplitudes = np.arange(
+        flux_pulse_amplitude_start, flux_pulse_amplitude_end, flux_pulse_amplitude_step
+    )
+    durations = np.arange(
+        flux_pulse_duration_start, flux_pulse_duration_end, flux_pulse_duration_step
+    )
+
+    sequence = (
+        initialize_1 + initialize_2 + flux_sequence + measure_lowfreq + measure_highfreq
+    )
+    # Might want to fix duration to expected time for 2 qubit gate.
+    duration_sweeper = Sweeper(Parameter.duration, durations, pulses=[flux_pulse])
+    amplitude_sweeper = Sweeper(Parameter.amplitude, amplitudes, pulses=[flux_pulse])
+
+    results = platform.sweep(
+        sequence, duration_sweeper, amplitude_sweeper, nshots=1, relaxation_time=0
+    )
+
+    res_temp = results[measure_lowfreq.serial].to_dict(average=False)
+    res_durations = np.repeat(durations, len(amplitudes))
+    res_amplitudes = np.array(len(durations) * list(amplitudes)).flatten()
+    res_temp.update(
+        {
+            "flux_pulse_duration[ns]": res_durations,
+            "flux_pulse_amplitude[dimensionless]": res_amplitudes,
+            "q_freq": len(durations) * len(amplitudes) * ["low"],
+        }
+    )
+    data.add_data_from_dict(res_temp)
+
+    res_temp = results[measure_highfreq.serial].to_dict(average=False)
+    res_temp.update(
+        {
+            "flux_pulse_duration[ns]": res_durations,
+            "flux_pulse_amplitude[dimensionless]": res_amplitudes,
+            "q_freq": len(durations) * len(amplitudes) * ["high"],
+        }
+    )
+    data.add_data_from_dict(res_temp)
+    yield data
+
+
+@plot("Chevron CZ", plots.duration_amplitude_msr_flux_pulse)
+@plot("Chevron CZ - I", plots.duration_amplitude_I_flux_pulse)
+@plot("Chevron CZ - Q", plots.duration_amplitude_Q_flux_pulse)
+def tune_transition(
+    platform,
+    qubits: dict,
+    flux_pulse_duration_start,
+    flux_pulse_duration_end,
+    flux_pulse_duration_step,
+    flux_pulse_amplitude_start,
+    flux_pulse_amplitude_end,
+    flux_pulse_amplitude_step,
+    dt=1,
+    nshots=1024,
+    relaxation_time=None,
+):
+    """Perform a Chevron-style plot for the flux pulse designed to apply a CZ (CPhase) gate.
+    This experiment probes the |11> to i|02> transition by preparing the |11> state with
+    pi-pulses, applying a flux pulse to the high frequency qubit to engage its 1 -> 2 transition
+    with varying interaction duration and amplitude. We then measure both the high and low frequency qubit.
+    We aim to find the spot where the transition goes from |11> -> i|02> -> -|11>.
+    Args:
+        platform: platform where the experiment is meant to be run.
+        qubit (int): qubit that will interact with center qubit 2.
+        flux_pulse_duration_start (int): minimum flux pulse duration in nanoseconds.
+        flux_pulse_duration_end (int): maximum flux pulse duration in nanoseconds.
+        flux_pulse_duration_step (int): step for the duration sweep in nanoseconds.
+        flux_pulse_amplitude_start (float): minimum flux pulse amplitude.
+        flux_pulse_amplitude_end (float): maximum flux pulse amplitude.
+        flux_pulse_amplitude_step (float): step for the amplitude sweep.
+        dt (int): time delay between the two flux pulses if enabled.
+    Returns:
+        data (DataSet): Measurement data for both the high and low frequency qubits.
+    """
+    # qubit_control = []
+    # qubit_target = []
+    # for i, q in enumerate(qubits):
+    #     topology = platform.topology[platform.qubits.index(q)]
+    #     for j in range(len(platform.qubits)):
+    #         if (
+    #             topology[j] == 1
+    #             and platform.qubits[j] != q
+    #             and platform.qubits[j] in qubits
+    #         ):
+    #             if (
+    #                 platform.qubits[q].drive_frequency
+    #                 > platform.qubits[[platform.qubits[j]]].drive_frequency
+    #             ):
+    #                 if (
+    #                     platform.qubits[j]
+    #                     not in np.array(qubit_control)[np.array(qubit_target) == q]
+    #                 ):
+    #                     qubit_control += [platform.qubits[j]]
+    #                     qubit_target += [q]
+    #             if (
+    #                 platform.characterization["single_qubit"][q]["qubit_freq"]
+    #                 < platform.characterization["single_qubit"][platform.qubits[j]][
+    #                     "qubit_freq"
+    #                 ]
+    #             ):
+    #                 if (
+    #                     platform.qubits[j]
+    #                     not in np.array(qubit_target)[np.array(qubit_control) == q]
+    #                 ):
+    #                     qubit_control += [q]
+    #                     qubit_target += [platform.qubits[j]]
+
+    highfreq = "A3"
+    lowfreq = "A4"
+
+    platform.reload_settings()
+
+    initialize_1 = platform.create_RX_pulse(highfreq, start=0, relative_phase=0)
+    initialize_2 = platform.create_RX_pulse(lowfreq, start=0, relative_phase=0)
+
+    # if qubit > 2:
+    #     highfreq = qubit
+    #     lowfreq = 2
+
+    flux_sequence, _ = platform.create_CZ_pulse_sequence(
+        (highfreq, lowfreq), start=initialize_1.finish
+    )
+    measure_lowfreq = platform.create_qubit_readout_pulse(
+        lowfreq, start=flux_sequence.finish
+    )
+    measure_highfreq = platform.create_qubit_readout_pulse(
+        highfreq, start=flux_sequence.finish
     )
 
     data = DataUnits(
@@ -133,8 +284,8 @@ def tune_transition(
     for duration in durations:
         for flux_pulse in flux_sequence.qf_pulses:
             flux_pulse.duration = duration
-        # measure_lowfreq.start = flux_pulse.start + duration
-        # measure_highfreq.start = flux_pulse.start + duration
+        measure_lowfreq.start = flux_pulse.start + duration
+        measure_highfreq.start = flux_pulse.start + duration
 
         results = platform.sweep(
             sequence,
