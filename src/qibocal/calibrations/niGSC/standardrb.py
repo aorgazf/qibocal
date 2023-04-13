@@ -73,6 +73,7 @@ class ModuleExperiment(Experiment):
                         It is used to store all relevant data.
         """
         super().__init__(circuitfactory, data, nshots, noise_model)
+        self.prebuild()
         self.name = "StandardRB"
 
     def execute(self, circuit: Circuit, datarow: dict) -> dict:
