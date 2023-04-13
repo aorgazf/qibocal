@@ -12,7 +12,7 @@ from qibo.noise import NoiseModel
 import qibocal.calibrations.niGSC.basics.fitting as fitting_methods
 from qibocal.calibrations.niGSC.basics.circuitfactory import CircuitFactory
 from qibocal.calibrations.niGSC.basics.experiment import Experiment
-from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig, update_fig
+from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig
 from qibocal.config import raise_error
 
 
@@ -121,7 +121,7 @@ def get_aggregational_data(experiment: Experiment, ndecays: int = None) -> pd.Da
     Args:
         experiment (Experiment): After sequential postprocessing of the experiment data.
         ndecays (int): number of decay parameters to fit. Default is 4
-    
+
     Returns:
         pd.DataFrame: The summarized data.
     """
@@ -173,30 +173,10 @@ def irrep_info(nqubits=1):
     return (np.eye(4), 0, 1, 4)
 
 
-def add_validation(
-    experiment: Experiment, dataframe: pd.DataFrame | dict, N: int | None = None
-) -> pd.DataFrame:
-    """Computes theoretical values of coefficients and decay parameters of a given experiment
-    and add validation data to the dataframe.
-    No data is manipulated in the ``experiment`` object.
-
-    Args:
-        experiment (Experiment): After sequential postprocessing of the experiment data.
-
-    Returns:
-        pd.DataFrame: The summarized data.
-    """
-
-    from qibocal.calibrations.niGSC.XIdrb import add_validation as addv_xid
-
-    df = addv_xid(experiment, dataframe, N)
-    return df
-
-
 # This is highly individual. The only important thing for the qq module is that a plotly figure is
 # returned, if qq is not used any type of figure can be build.
 def build_report(
-    experiment: Experiment, df_aggr: pd.DataFrame, validate: bool = False, N: int = None
+    experiment: Experiment, df_aggr: pd.DataFrame
 ) -> Figure:
     """Use data and information from ``experiment`` and the aggregated data data frame to
     build a report as plotly figure.
@@ -224,20 +204,6 @@ def build_report(
     # Check if there are imaginary values in the data
     is_imag = "popt_imag" in df_aggr
     fittingparam_label = "popt_imag" if is_imag else "popt"
-    # If there is validation, add it to the ``report.info_dict`` as it might be too long for th plot legend
-    validation_label = "validation_imag" if is_imag else "validation"
-    if validation_label in df_aggr.loc["filter"]:
-        from qibocal.calibrations.niGSC.basics import utils
-
-        report.info_dict["Validation"] = "".join(
-            [
-                "{}: {} ".format(
-                    key,
-                    utils.number_to_str(df_aggr.loc["filter"][validation_label][key]),
-                )
-                for key in df_aggr.loc["filter"][validation_label]
-            ]
-        )
     # Use the predefined ``scatter_fit_fig`` function from ``basics.utils`` to build the wanted
     # plotly figure with the scattered filtered data along with the mean for
     # each depth and the exponential fit for the means.
@@ -250,15 +216,6 @@ def build_report(
             fittingparam_label=fittingparam_label,
         )
     )
-
-    # If there is validation, add it to the figure
-    if validation_label in df_aggr.loc["filter"]:
-        report.all_figures[-1] = update_fig(
-            report.all_figures[-1],
-            df_aggr,
-            param_label=validation_label,
-            name="Validation",
-        )
 
     # If there are imaginary values in the data, create another figure
     if is_imag:
@@ -273,13 +230,5 @@ def build_report(
             )
         )
 
-        if validation_label in df_aggr.loc["filter"]:
-            report.all_figures[-1] = update_fig(
-                report.all_figures[-1],
-                df_aggr,
-                param_label=validation_label,
-                name="Validation",
-                is_imag=True,
-            )
     # Return the figure the report object builds out of all figures added to the report.
     return report.build()

@@ -109,15 +109,6 @@ def test_post_processing(
         assert "popt" in aggr_df.columns or "popt_imag" in aggr_df.columns
         assert "perr" in aggr_df.columns
 
-        aggr_df = paulisfilteredrb.add_validation(myfaultyexperiment, aggr_df)
-        assert "validation" in aggr_df.columns or "validation_imag" in aggr_df.columns
-
-        data = aggr_df.to_dict("records")
-        validation_label = "validation_imag" if "popt_imag" in data[0] else "validation"
-        validation_params = data[0][validation_label]
-        np.testing.assert_allclose(validation_params["A"], 0.5, rtol=0.1)
-        np.testing.assert_allclose(validation_params["p"], 1 - px - py, rtol=0.1)
-
 
 @pytest.mark.parametrize("nqubits", [1])
 @pytest.mark.parametrize("runs", [1, 3])
@@ -137,34 +128,5 @@ def test_build_report(depths: list, nshots: int, nqubits: int, runs: int, qubits
         myfaultyexperiment.perform(myfaultyexperiment.execute)
         paulisfilteredrb.post_processing_sequential(myfaultyexperiment)
         aggr_df = paulisfilteredrb.get_aggregational_data(myfaultyexperiment)
-        aggr_df = paulisfilteredrb.add_validation(myfaultyexperiment, aggr_df)
-        report_figure = XIdrb.build_report(myfaultyexperiment, aggr_df)
+        report_figure = paulisfilteredrb.build_report(myfaultyexperiment, aggr_df)
         assert isinstance(report_figure, Figure)
-
-
-@pytest.mark.parametrize("nqubits", [1])
-@pytest.mark.parametrize("runs", [1, 3])
-@pytest.mark.parametrize("qubits", [[0], [2]])
-def test_build_report(depths: list, nshots: int, nqubits: int, runs: int, qubits: list):
-    if max(qubits) > nqubits - 1:
-        pass
-    else:
-        # Build the noise model.
-        px, py, pz = np.random.uniform(0, 0.25, size=3)
-        noise = noisemodels.PauliErrorOnNonDiagonal(px, py, pz)
-        # Test exectue an experiment.
-        myfactory1 = paulisfilteredrb.ModuleFactory(nqubits, depths * runs, qubits)
-        myfaultyexperiment = paulisfilteredrb.ModuleExperiment(
-            myfactory1, nshots=nshots, noise_model=noise
-        )
-        myfaultyexperiment.perform(myfaultyexperiment.execute)
-        paulisfilteredrb.post_processing_sequential(myfaultyexperiment)
-        aggr_df = paulisfilteredrb.get_aggregational_data(myfaultyexperiment)
-        aggr_df = paulisfilteredrb.add_validation(myfaultyexperiment, aggr_df)
-        assert "validation" in aggr_df.columns or "validation_imag" in aggr_df.columns
-
-        data = aggr_df.to_dict("records")
-        validation_label = "validation_imag" if "popt_imag" in data[0] else "validation"
-        validation_params = data[0][validation_label]
-        np.testing.assert_allclose(validation_params["A"], 0.5, rtol=0.1)
-        np.testing.assert_allclose(validation_params["p"], 1 - px - py, rtol=0.1)

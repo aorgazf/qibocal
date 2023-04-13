@@ -13,10 +13,8 @@ from qibo.quantum_info import comp_basis_to_pauli
 import qibocal.calibrations.niGSC.basics.fitting as fitting_methods
 from qibocal.calibrations.niGSC.basics.circuitfactory import CircuitFactory
 from qibocal.calibrations.niGSC.basics.experiment import Experiment
-from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig, update_fig
-from qibocal.calibrations.niGSC.basics.rb_validation import filtered_decay_parameters
+from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig
 from qibocal.config import raise_error
-
 
 # matrices = QiboMatrices()
 pauli_list = []
@@ -47,11 +45,8 @@ class ModuleFactory(CircuitFactory):
         # Initiate the empty circuit from qibo with 'self.nqubits'
         # many qubits.
         circuit = Circuit(1, density_matrix=True)
-        # There are only two gates to choose from for every qubit.
-        # Draw sequence length many zeros and ones.
-        random_ints = np.random.randint(0, len(pauli_list), size=depth)
-        # Get the gates with random_ints as indices.
-        gate_lists = np.take(pauli_list, random_ints)
+        # Draw sequence of random Pauli gates.
+        gate_lists = np.random.choice(pauli_list, size=depth)
         # Add gates to circuit.
         circuit.add(gate_lists)
         circuit.add(gates.M(0))
@@ -203,48 +198,6 @@ def irrep_info(nqubits=1):
     return (basis_c2p_1q, 3, 1, 1)
 
 
-def add_validation(
-    experiment: Experiment, dataframe: pd.DataFrame | dict, N: int | None = None
-) -> pd.DataFrame:
-    """Computes theoretical values of coefficients and decay parameters of a given experiment
-    and add validation data to the dataframe.
-    No data is manipulated in the ``experiment`` object.
-
-    Args:
-        experiment (Experiment): After sequential postprocessing of the experiment data.
-
-    Returns:
-        pd.DataFrame: The summarized data.
-    """
-
-    data = dataframe.to_dict("records")
-    coefficients, decay_parameters = filtered_decay_parameters(
-        experiment.name,
-        1,
-        experiment.noise_model,
-        with_coefficients=True,
-        N=N,
-    )
-    if len(coefficients) == 1:
-        validation_dict = {"A": coefficients[0], "p": decay_parameters[0]}
-        validation_func_label = "exp1_func"
-    else:
-        ndecays = len(coefficients)
-        validation_keys = [f"A{k+1}" for k in range(ndecays)]
-        validation_keys += [f"p{k+1}" for k in range(ndecays)]
-        validation_dict = dict(
-            zip(validation_keys, np.concatenate((coefficients, decay_parameters)))
-        )
-        validation_func_label = "expn_func"
-
-    data[0].update(
-        {"validation": validation_dict, "validation_func": validation_func_label}
-    )
-    # The row name will be displayed as y-axis label.
-    df = pd.DataFrame(data, index=dataframe.index)
-    return df
-
-
 # This is highly individual. The only important thing for the qq module is that a plotly figure is
 # returned, if qq is not used any type of figure can be build.
 def build_report(experiment: Experiment, df_aggr: pd.DataFrame) -> Figure:
@@ -275,7 +228,5 @@ def build_report(experiment: Experiment, df_aggr: pd.DataFrame) -> Figure:
     # plotly figure with the scattered filtered data along with the mean for
     # each depth and the exponential fit for the means.
     report.all_figures.append(scatter_fit_fig(experiment, df_aggr, "depth", "filter"))
-    if "validation" in df_aggr:
-        report.all_figures[-1] = update_fig(report.all_figures[-1], df_aggr)
     # Return the figure the report object builds out of all figures added to the report.
     return report.build()

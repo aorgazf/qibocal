@@ -15,9 +15,7 @@ from qibo.quantum_info import comp_basis_to_pauli
 import qibocal.calibrations.niGSC.basics.fitting as fitting_methods
 from qibocal.calibrations.niGSC.basics.circuitfactory import SingleCliffordsFactory
 from qibocal.calibrations.niGSC.basics.experiment import Experiment
-from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig, update_fig
-from qibocal.calibrations.niGSC.basics.rb_validation import filtered_decay_parameters
-from qibocal.config import raise_error
+from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig
 
 
 class ModuleFactory(SingleCliffordsFactory):
@@ -238,50 +236,12 @@ def gate_group(nqubits=1):
 def irrep_info(nqubits=1):
     """
     Infromation about the irreducible representation of the Clifford group.
-    
+
     Returns:
         tuple: (basis, index, size, multiplicity) of the sign irrep
     """
     basis_c2p_1q = comp_basis_to_pauli(1, normalize=True)
     return (basis_c2p_1q, 1, 3, 1)
-
-
-def add_validation(
-    experiment: Experiment, dataframe: pd.DataFrame | dict, N: int | None = None
-) -> pd.DataFrame:
-    """Computes theoretical values of coefficients and decay parameters of a given experiment
-    and add validation data to the dataframe.
-    No data is manipulated in the ``experiment`` object.
-
-    Args:
-        experiment (Experiment): After sequential postprocessing of the experiment data.
-        dataframe (pd.DataFrame): The data where the validation should be added.
-
-    Returns:
-        pd.DataFrame: The summarized data.
-    """
-    nqubits = len(experiment.data[0]["samples"][0])
-    if nqubits > 1:
-        raise_error(
-            NotImplementedError,
-            "Theoretical validation for multiple qubits is not implemented.",
-        )
-
-    data = dataframe.to_dict("records")
-    coefficients, decay_parameters = filtered_decay_parameters(
-        experiment.name, nqubits, experiment.noise_model, with_coefficients=True, N=N
-    )
-    ndecays = len(coefficients)
-    validation_keys = [f"A{k+1}" for k in range(ndecays)]
-    validation_keys += [f"p{k+1}" for k in range(ndecays)]
-    validation_dict = dict(
-        zip(validation_keys, np.concatenate((coefficients, decay_parameters)))
-    )
-
-    data[1].update({"validation": validation_dict, "validation_func": "expn_func"})
-    # The row name will be displayed as y-axis label.
-    df = pd.DataFrame(data, index=dataframe.index)
-    return df
 
 
 def build_report(experiment: Experiment, df_aggr: pd.DataFrame) -> Figure:
@@ -317,6 +277,4 @@ def build_report(experiment: Experiment, df_aggr: pd.DataFrame) -> Figure:
         # Add a subplot title for each irrep.
         figdict["subplot_title"] = f"Irrep {l}"
         report.all_figures.append(figdict)
-        if "validation" in df_aggr:
-            report.all_figures[-1] = update_fig(report.all_figures[-1], df_aggr)
     return report.build()

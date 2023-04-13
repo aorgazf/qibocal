@@ -11,7 +11,7 @@ from qibo.noise import NoiseModel
 
 from qibocal.calibrations.niGSC.basics.circuitfactory import ZkFilteredCircuitFactory
 from qibocal.calibrations.niGSC.basics.experiment import Experiment
-from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig, update_fig
+from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig
 
 
 # Define the circuit factory class for this specific module.
@@ -160,30 +160,10 @@ def irrep_info(nqubits=1):
     return (zk_basis, 3, 1, 1)
 
 
-def add_validation(
-    experiment: Experiment, dataframe: pd.DataFrame | dict, N: int | None = None
-) -> pd.DataFrame:
-    """Computes theoretical values of coefficients and decay parameters of a given experiment
-    and add validation data to the dataframe.
-    No data is manipulated in the ``experiment`` object.
-
-    Args:
-        experiment (Experiment): After sequential postprocessing of the experiment data.
-        dataframe (pd.DataFrame): The data where the validation should be added.
-
-    Returns:
-        pd.DataFrame: The summarized data.
-    """
-    from qibocal.calibrations.niGSC.XIdrb import add_validation as addv_xid
-
-    df = addv_xid(experiment, dataframe, N)
-    return df
-
-
 # This is highly individual. The only important thing for the qq module is that a plotly figure is
 # returned, if qq is not used any type of figure can be build.
 def build_report(
-    experiment: Experiment, df_aggr: pd.DataFrame, validate: bool = False, N: int = None
+    experiment: Experiment, df_aggr: pd.DataFrame
 ) -> Figure:
     """Use data and information from ``experiment`` and the aggregated data data frame to
     build a report as plotly figure.
@@ -212,7 +192,6 @@ def build_report(
     # Check if there are imaginary values in the data
     is_imag = "popt_imag" in df_aggr
     fittingparam_label = "popt_imag" if is_imag else "popt"
-    validation_label = "validation_imag" if is_imag else "validation"
     # Use the predefined ``scatter_fit_fig`` function from ``basics.utils`` to build the wanted
     # plotly figure with the scattered filtered data along with the mean for
     # each depth and the exponential fit for the means.
@@ -226,14 +205,6 @@ def build_report(
         )
     )
 
-    # If there is validation, add it to the figure
-    if validation_label in df_aggr.loc["filter"]:
-        report.all_figures[-1] = update_fig(
-            report.all_figures[-1],
-            df_aggr,
-            param_label=validation_label,
-        )
-
     # If there are imaginary values in the data, create another figure
     if is_imag:
         report.all_figures.append(
@@ -246,13 +217,5 @@ def build_report(
                 is_imag=True,
             )
         )
-
-        if validation_label in df_aggr.loc["filter"]:
-            report.all_figures[-1] = update_fig(
-                report.all_figures[-1],
-                df_aggr,
-                param_label=validation_label,
-                is_imag=True,
-            )
     # Return the figure the report object builds out of all figures added to the report.
     return report.build()

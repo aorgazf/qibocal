@@ -76,7 +76,7 @@ class CircuitFactory:
             Circuit: the circuit with ``depth`` many layers.
         """
         # Initiate the ``Circuit`` object with the amount of active qubits.
-        circuit = Circuit(len(self.qubits))
+        circuit = Circuit(len(self.qubits), density_matrix=True)
         # Go throught the depth/layers of the circuit and add gate layers.
         for _ in range(depth):
             circuit.add(self.gate_layer())
@@ -167,10 +167,8 @@ class ZkFilteredCircuitFactory(CircuitFactory):
         # Initiate the empty circuit from qibo with 'self.nqubits'
         # many qubits.
         circuit = Circuit(1, density_matrix=True)
-        # Draw sequence length many indices corresponding to the elements of the gate group.
-        random_ints = np.random.randint(0, len(self.gate_group), size=depth)
-        # Get the gates with random_ints as indices.
-        gate_lists = np.take(self.gate_group, random_ints)
+        # Draw a sequence of random gates from self.gate_group
+        gate_lists = np.random.choice(self.gate_group, size=depth)
         # Add gates to circuit.
         circuit.add(gate_lists)
         circuit.add(gates.M(0))

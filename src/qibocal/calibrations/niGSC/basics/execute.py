@@ -15,7 +15,7 @@ def execute_simulation(
 
     Args:
         module_name (str): name of the module in `qibocal.calibrations.niGSC` or path to the custom module.
-        A module has to have `ModuleFactory`, `ModuleExperiment`, `post_processing_sequential`, `get_aggregational_data`, `build_report` and an optional function `add_validation`.
+        A module has to have `ModuleFactory`, `ModuleExperiment`, `post_processing_sequential`, `get_aggregational_data`, `build_report`.
         depths (list): list of depths for circuits
         nqubits (int): number of qubits.
         nshots (int): number of shots per measurement
@@ -62,12 +62,6 @@ def execute_simulation(
     # Post-processing phase.
     module.post_processing_sequential(experiment)
     aggr_df = module.get_aggregational_data(experiment, ndecays=ndecays)
-
-    # Add theoretical validation if possible.
-    try:
-        aggr_df = module.add_validation(experiment, aggr_df)
-    except:
-        pass
 
     # Build a report.
     report_figure = module.build_report(experiment, aggr_df)

@@ -99,22 +99,6 @@ def test_post_processing(
         assert "popt" in aggr_df.columns or "popt_imag" in aggr_df.columns
         assert "perr" in aggr_df.columns
 
-        aggr_df = Idrb.add_validation(myfaultyexperiment, aggr_df)
-        assert "validation" in aggr_df.columns or "validation_imag" in aggr_df.columns
-
-        data = aggr_df.to_dict("records")
-        validation_label = "validation_imag" if "popt_imag" in data[0] else "validation"
-        validation_params = data[0][validation_label]
-        a1, a2, p1, p2 = (
-            validation_params["A1"],
-            validation_params["A2"],
-            validation_params["p1"],
-            validation_params["p2"],
-        )
-        assert np.allclose([a1, a2], 0.5, rtol=0.1)
-        assert np.allclose(min(p1, p2), 1 - 2 * px - 2 * py, rtol=0.1)
-        assert np.allclose(max(p1, p2), 1.0, rtol=0.1)
-
 
 @pytest.mark.parametrize("nqubits", [1])
 @pytest.mark.parametrize("runs", [1, 3])
@@ -134,41 +118,6 @@ def test_build_report(depths: list, nshots: int, nqubits: int, runs: int, qubits
         myfaultyexperiment.perform(myfaultyexperiment.execute)
         Idrb.post_processing_sequential(myfaultyexperiment)
         aggr_df = Idrb.get_aggregational_data(myfaultyexperiment)
-        aggr_df = Idrb.add_validation(myfaultyexperiment, aggr_df)
         report_figure = Idrb.build_report(myfaultyexperiment, aggr_df)
         assert isinstance(report_figure, Figure)
 
-
-@pytest.mark.parametrize("nqubits", [1])
-@pytest.mark.parametrize("runs", [1, 3])
-@pytest.mark.parametrize("qubits", [[0], [2]])
-def test_build_report(depths: list, nshots: int, nqubits: int, runs: int, qubits: list):
-    if max(qubits) > nqubits - 1:
-        pass
-    else:
-        # Build the noise model.
-        px, py, pz = np.random.uniform(0, 0.25, size=3)
-        noise = noisemodels.PauliErrorOnAll(px, py, pz)
-        # Test exectue an experiment.
-        myfactory1 = Idrb.ModuleFactory(nqubits, depths * runs, qubits)
-        myfaultyexperiment = Idrb.ModuleExperiment(
-            myfactory1, nshots=nshots, noise_model=noise
-        )
-        myfaultyexperiment.perform(myfaultyexperiment.execute)
-        Idrb.post_processing_sequential(myfaultyexperiment)
-        aggr_df = Idrb.get_aggregational_data(myfaultyexperiment)
-        aggr_df = Idrb.add_validation(myfaultyexperiment, aggr_df)
-        assert "validation" in aggr_df.columns or "validation_imag" in aggr_df.columns
-
-        data = aggr_df.to_dict("records")
-        validation_label = "validation_imag" if "popt_imag" in data[0] else "validation"
-        validation_params = data[0][validation_label]
-        a1, a2, p1, p2 = (
-            validation_params["A1"],
-            validation_params["A2"],
-            validation_params["p1"],
-            validation_params["p2"],
-        )
-        assert np.allclose([a1, a2], 0.5, rtol=0.1)
-        assert np.allclose(min(p1, p2), 1 - 2 * px - 2 * py, rtol=0.1)
-        assert np.allclose(max(p1, p2), 1.0, rtol=0.1)

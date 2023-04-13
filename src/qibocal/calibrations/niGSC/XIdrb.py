@@ -30,8 +30,7 @@ from qibo.quantum_info import comp_basis_to_pauli
 import qibocal.calibrations.niGSC.basics.fitting as fitting_methods
 from qibocal.calibrations.niGSC.basics.circuitfactory import ZkFilteredCircuitFactory
 from qibocal.calibrations.niGSC.basics.experiment import Experiment
-from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig, update_fig
-from qibocal.calibrations.niGSC.basics.rb_validation import filtered_decay_parameters
+from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig
 
 
 # Define the circuit factory class for this specific module.
@@ -183,46 +182,10 @@ def irrep_info(nqubits=1):
     return (basis_c2p_1q, 2, 1, 2)
 
 
-def add_validation(
-    experiment: Experiment, dataframe: pd.DataFrame | dict, N: int | None = None
-) -> pd.DataFrame:
-    """Computes theoretical values of coefficients and decay parameters of a given experiment
-    and add validation data to the dataframe.
-    No data is manipulated in the ``experiment`` object.
-
-    Args:
-        experiment (Experiment): After sequential postprocessing of the experiment data.
-        dataframe (pd.DataFrame): The data where the validation should be added.
-
-    Returns:
-        pd.DataFrame: The summarized data.
-    """
-    data = dataframe.to_dict("records")
-    validation_label = "validation_imag" if "popt_imag" in data[0] else "validation"
-    coefficients, decay_parameters = filtered_decay_parameters(
-        experiment.name,
-        1,
-        experiment.noise_model,
-        with_coefficients=True,
-        N=N,
-    )
-    ndecays = len(coefficients)
-    validation_keys = [f"A{k+1}" for k in range(ndecays)]
-    validation_keys += [f"p{k+1}" for k in range(ndecays)]
-    validation_dict = dict(
-        zip(validation_keys, np.concatenate((coefficients, decay_parameters)))
-    )
-
-    data[0].update({validation_label: validation_dict, "validation_func": "expn_func"})
-    # The row name will be displayed as y-axis label.
-    df = pd.DataFrame(data, index=dataframe.index)
-    return df
-
-
 # This is highly individual. The only important thing for the qq module is that a plotly figure is
 # returned, if qq is not used any type of figure can be build.
 def build_report(
-    experiment: Experiment, df_aggr: pd.DataFrame, validate: bool = False, N: int = None
+    experiment: Experiment, df_aggr: pd.DataFrame
 ) -> Figure:
     """Use data and information from ``experiment`` and the aggregated data data frame to
     build a report as plotly figure.
@@ -251,7 +214,6 @@ def build_report(
     # Check if there are imaginary values in the data
     is_imag = "popt_imag" in df_aggr
     fittingparam_label = "popt_imag" if is_imag else "popt"
-    validation_label = "validation_imag" if is_imag else "validation"
     # Use the predefined ``scatter_fit_fig`` function from ``basics.utils`` to build the wanted
     # plotly figure with the scattered filtered data along with the mean for
     # each depth and the exponential fit for the means.
@@ -265,14 +227,6 @@ def build_report(
         )
     )
 
-    # If there is validation, add it to the figure
-    if validation_label in df_aggr.loc["filter"]:
-        report.all_figures[-1] = update_fig(
-            report.all_figures[-1],
-            df_aggr,
-            param_label=validation_label,
-        )
-
     # If there are imaginary values in the data, create another figure
     if is_imag:
         report.all_figures.append(
@@ -285,13 +239,5 @@ def build_report(
                 is_imag=True,
             )
         )
-
-        if validation_label in df_aggr.loc["filter"]:
-            report.all_figures[-1] = update_fig(
-                report.all_figures[-1],
-                df_aggr,
-                param_label=validation_label,
-                is_imag=True,
-            )
     # Return the figure the report object builds out of all figures added to the report.
     return report.build()
