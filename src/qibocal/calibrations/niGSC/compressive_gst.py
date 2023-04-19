@@ -28,10 +28,10 @@ from qibocal.config import raise_error
 
 int_to_gate = {
     0: lambda q: gates.I(*q),
-    1: lambda q: gates.RX(q[0], np.pi / 2),
-    2: lambda q: gates.RY(q[0], np.pi / 2),
-    3: lambda q: gates.RX(q[1], np.pi / 2),
-    4: lambda q: gates.RY(q[1], np.pi / 2),
+    1: lambda q: [gates.RX(q[0], np.pi / 2), gates.I(q[1])],
+    2: lambda q: [gates.RY(q[0], np.pi / 2), gates.I(q[1])],
+    3: lambda q: [gates.RX(q[1], np.pi / 2), gates.I(q[0])],
+    4: lambda q: [gates.RY(q[1], np.pi / 2), gates.I(q[0])],
     5: lambda q: gates.CZ(*q),
 }
 
@@ -155,7 +155,7 @@ class ModuleExperiment(Experiment):
                             sequence.get_qubit_pulses(*self.qubits).finish,
                             sequence.get_qubit_pulses(*self.qubits).finish,
                         ),
-                        relative_phase=virtual_z_phases[qubit]+phase,
+                        relative_phase=virtual_z_phases[qubit] + phase,
                     )
                 )
             # CZ gate
