@@ -422,7 +422,7 @@ def tune_landscape(
             sequence, sweeper, nshots=nshots, relaxation_time=relaxation_time
         )
 
-        result_low = results[measure_lowfreq.serial].to_dict(average=False)
+        result_low = results[measure_lowfreq.serial].raw
         result_low.update(
             {
                 "theta[rad]": thetas,
@@ -432,7 +432,7 @@ def tune_landscape(
         )
         data.add_data_from_dict(result_low)
 
-        result_high = results[measure_highfreq.serial].to_dict(average=False)
+        result_high = results[measure_highfreq.serial].raw
         result_high.update(
             {
                 "theta[rad]": thetas,
