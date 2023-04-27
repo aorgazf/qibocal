@@ -337,7 +337,7 @@ def ramsey(
             average=False,
         )
         for qubit in qubits:
-            result = results[ro_pulses[qubit].serial].to_dict(average=False)
+            result = results[ro_pulses[qubit].serial].raw
             r = {k: np.mean(result[k], axis=0) for k in result}
             r.update(
                 {
