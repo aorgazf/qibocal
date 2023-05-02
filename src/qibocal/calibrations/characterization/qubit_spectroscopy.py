@@ -272,3 +272,138 @@ def qubit_spectroscopy_flux(
 
         # finally, save the remaining data and fits
         yield data
+
+
+@plot("MSR and Phase vs Qubit Drive Frequency", plots.frequency_msr_phase)
+def qubit_spectroscopy_with_lo(
+    platform: AbstractPlatform,
+    qubits: dict,
+    freq_width: int,
+    freq_step: int,
+    drive_duration: int,
+    drive_amplitude: Optional[float] = None,
+    nshots: int = 1024,
+    relaxation_time: int = 50,
+    if_frequency: int = 0,
+    software_averages: int = 1,
+):
+    r"""
+    Perform spectroscopy on the qubit using the local oscillator and an IF close to 0MHz.
+    This routine executes a fast scan around the expected qubit frequency indicated in the platform runcard.
+
+    Args:
+        platform (AbstractPlatform): Qibolab platform object
+        qubits (dict): Dict of target Qubit objects to perform the action
+        freq_width (int): Width frequency in HZ to perform the high resolution sweep
+        freq_step (int): Step frequency in HZ for the high resolution sweep
+        software_averages (int): Number of executions of the routine for averaging results
+        points (int): Save data results in a file every number of points
+
+    Returns:
+        - Two DataUnits objects with the raw data obtained for the fast and precision sweeps with the following keys
+
+            - **MSR[V]**: Resonator signal voltage mesurement in volts
+            - **i[V]**: Resonator signal voltage mesurement for the component I in volts
+            - **q[V]**: Resonator signal voltage mesurement for the component Q in volts
+            - **phase[rad]**: Resonator signal phase mesurement in radians
+            - **frequency[Hz]**: Qubit drive frequency value in Hz
+            - **qubit**: The qubit being tested
+            - **iteration**: Iteration number of the routine
+
+
+        - A DataUnits object with the fitted data obtained with the following keys
+
+            - **qubit**: The qubit being tested
+            - **drive_frequency**: frequency
+            - **peak_voltage**: peak voltage
+            - **popt0**: Lorentzian's amplitude
+            - **popt1**: Lorentzian's center
+            - **popt2**: Lorentzian's sigma
+            - **popt3**: Lorentzian's offset
+    """
+
+    # reload instrument settings from runcard
+    platform.reload_settings()
+    # create a sequence of pulses for the experiment:
+    # long drive probing pulse - MZ
+
+    # taking advantage of multiplexing, apply the same set of gates to all qubits in parallel
+    sequence = PulseSequence()
+    ro_pulses = {}
+    qd_pulses = {}
+    drive_frequencies = {}
+    for qubit in qubits:
+        qd_pulses[qubit] = platform.create_qubit_drive_pulse(
+            qubit, start=0, duration=drive_duration
+        )
+        drive_frequencies[qubit] = qd_pulses[qubit].frequency
+        if drive_amplitude is not None:
+            qd_pulses[qubit].amplitude = drive_amplitude
+        ro_pulses[qubit] = platform.create_qubit_readout_pulse(
+            qubit, start=qd_pulses[qubit].finish
+        )
+        sequence.add(qd_pulses[qubit])
+        sequence.add(ro_pulses[qubit])
+
+    # define the parameter to sweep and its range:
+    delta_frequency_range = np.arange(-freq_width // 2, freq_width // 2, freq_step)
+
+    # create a DataUnits object to store the results,
+    # DataUnits stores by default MSR, phase, i, q
+    # additionally include qubit frequency
+    data = DataUnits(
+        name="data",
+        quantities={"frequency": "Hz"},
+        options=["qubit", "iteration"],
+    )
+
+    # Repeat the experiment for qubits sharing the same LO
+
+    shared_lo = platform.get_lo_drive_shared(qubits)
+    while True:
+        # Break loop if all qubits have been swept with their LO
+        if len(shared_lo) == 0:
+            break
+        for delta_freq in delta_frequency_range:
+            # set the LO frequency
+            for lo in shared_lo:
+                if len(shared_lo[lo][1]) > 0:
+                    for q in shared_lo[lo][1]:
+                        qd_pulses[q].frequency = drive_frequencies[q] + delta_freq
+                    shared_lo[lo][0].frequency = (
+                        qd_pulses[shared_lo[lo][1][0]].frequency + if_frequency
+                    )
+
+            results = platform.execute_pulse_sequence(
+                sequence, nshots=nshots, relaxation_time=relaxation_time
+            )
+
+            # retrieve the results for every qubit
+            for qubit, ro_pulse in ro_pulses.items():
+                # average msr, phase, i and q over the number of shots defined in the runcard
+                result = results[ro_pulse.serial]
+                r = result.raw
+                # store the results
+                r.update(
+                    {
+                        "frequency[Hz]": qd_pulses[qubit].frequency,
+                        "qubit": qubit,
+                        "iteration": 0,
+                    }
+                )
+                data.add_data_from_dict(r)
+
+            # finally, save the remaining data and fits
+            yield data
+            yield lorentzian_fit(
+                data,
+                x="frequency[GHz]",
+                y="MSR[uV]",
+                qubits=qubits,
+                resonator_type=platform.resonator_type,
+                labels=["drive_frequency", "peak_voltage"],
+            )
+        for lo in shared_lo:
+            del shared_lo[lo][1][0]
+            if len(shared_lo[lo][1]) == 0:
+                del shared_lo[lo]
