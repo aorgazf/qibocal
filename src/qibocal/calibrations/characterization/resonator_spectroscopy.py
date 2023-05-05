@@ -488,7 +488,7 @@ def resonator_spectroscopy_flux(
 
                 biases = np.repeat(
                     delta_bias_range, len(delta_frequency_range)
-                ) + platform.get_bias(fluxline)
+                ) + platform.get_bias(f)
                 freqs = np.array(
                     len(delta_bias_range)
                     * list(delta_frequency_range + ro_pulses[qubit].frequency)

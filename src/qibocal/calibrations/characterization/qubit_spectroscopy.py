@@ -232,9 +232,6 @@ def qubit_spectroscopy_flux(
         pulses=[qd_pulses[qubit] for qubit in qubits],
     )
 
-    if fluxlines == "qubits":
-        fluxlines = qubits
-
     # flux bias
     if fluxlines == "qubits":
         fluxlines = [None]
@@ -272,7 +269,7 @@ def qubit_spectroscopy_flux(
             )
 
             # retrieve the results for every qubit
-            for qubit, fluxline in zip(qubits, fluxlines):
+            for qubit in qubits:
                 if fluxline is None:
                     f = qubit
                 else:
@@ -282,7 +279,7 @@ def qubit_spectroscopy_flux(
                 # store the results
                 biases = np.repeat(
                     delta_bias_range, len(delta_frequency_range)
-                ) + platform.get_bias(fluxline)
+                ) + platform.get_bias(f)
                 freqs = np.array(
                     len(delta_bias_range)
                     * list(delta_frequency_range + qd_pulses[qubit].frequency)

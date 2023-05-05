@@ -78,7 +78,7 @@ def ramsey_frequency_detuned(
         RX90_pulses1[qubit] = platform.create_RX90_pulse(qubit, start=0)
         RX90_pulses1[qubit].frequency = qubits[qubit].drive_frequency
         RX90_pulses2[qubit] = platform.create_RX90_pulse(
-            qubit, start=RX90_pulses1[qubit].finish
+            qubit, start=RX90_pulses1[qubit].finish, relative_phase=np.pi
         )
         ro_pulses[qubit] = platform.create_qubit_readout_pulse(
             qubit, start=RX90_pulses2[qubit].finish
@@ -292,7 +292,7 @@ def ramsey(
     for qubit in qubits:
         RX90_pulses1[qubit] = platform.create_RX90_pulse(qubit, start=0)
         RX90_pulses2[qubit] = platform.create_RX90_pulse(
-            qubit, start=RX90_pulses1[qubit].finish
+            qubit, start=RX90_pulses1[qubit].finish, relative_phase=np.pi / 2
         )
         ro_pulses[qubit] = platform.create_qubit_readout_pulse(
             qubit, start=RX90_pulses2[qubit].finish
