@@ -152,3 +152,46 @@ def scatter_fit_fig(
         )
     )
     return {"figs": fig_traces, "xlabel": xlabel, "ylabel": index}
+
+
+
+def carousel(fig_list: list):
+    """fig_list is the same as report.all_figures"""
+    fig = go.Figure()
+    steps = []
+    fig_sizes = [len(fig_dict["figs"]) for fig_dict in fig_list]
+
+    for count, fig_dict in enumerate(fig_list):
+        for plot in fig_dict["figs"]:
+            fig.add_trace(plot)
+            fig.data[-1].visible = count == 0
+
+        # Update slider data
+        step = dict(
+            label=fig_dict.get("subplot_title"),
+            method="update",
+            args=[
+                {"visible": [False] * sum(fig_sizes)},
+                {"title": fig_dict.get("subplot_title")},
+            ],  # layout attribute
+        )
+        step["args"][0]["visible"][len(fig.data) - fig_sizes[count] : len(fig.data)] = [
+            True
+        ] * fig_sizes[
+            count
+        ]  # Toggle kth figure traces to "visible"
+        steps.append(step)
+
+    # Create and add slider
+    sliders = [
+        dict(
+            active=0,
+            # TODO should we add a prefix? (I think not)
+            # currentvalue={"prefix": slider_prefix},
+            pad={"t": 50},
+            steps=steps,
+        )
+    ]
+
+    fig.update_layout(sliders=sliders)
+    return fig

@@ -16,7 +16,7 @@ from qibo.noise import NoiseModel
 import qibocal.calibrations.niGSC.basics.fitting as fitting_methods
 from qibocal.calibrations.niGSC.basics.circuitfactory import SingleCliffordsFactory
 from qibocal.calibrations.niGSC.basics.experiment import Experiment
-from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig
+from qibocal.calibrations.niGSC.basics.plot import Report, carousel, scatter_fit_fig
 
 
 class ModuleFactory(SingleCliffordsFactory):
@@ -322,4 +322,6 @@ def build_report(experiment: Experiment, df_aggr: pd.DataFrame) -> Figure:
             # Add a subplot title for each irrep.
             figdict["subplot_title"] = irrep_lable
             report.all_figures.append(figdict)
-    return report.build()
+
+    irrep_carousel = carousel(report.all_figures)
+    return irrep_carousel, report.info_table()
