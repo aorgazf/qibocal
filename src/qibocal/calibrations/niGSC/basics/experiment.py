@@ -176,7 +176,9 @@ class Experiment:
         """
         self.circuitfactory = list(self.circuitfactory)
 
-    def perform(self, sequential_task: Callable[[Circuit, dict], dict]) -> None:
+    def perform(
+        self, sequential_task: Callable[[Circuit, dict], dict], **kwargs
+    ) -> None:
         """Takes a given function, checks the status of attribute ``circuitfactory``
         and ``data`` and executes the sequential function row by row altering the
         ``self.data`` attribute.
@@ -194,16 +196,16 @@ class Experiment:
         # Both ``circuit`` and ``datarow`` can be provided:
         if self.circuitfactory is not None and self.data is not None:
             for circuit, datarow in zip(self.circuitfactory, self.data):
-                datarow = sequential_task(circuit.copy(deep=True), datarow)
+                datarow = sequential_task(circuit.copy(deep=True), datarow, **kwargs)
         # Only``datarow`` can be provided:
         elif self.circuitfactory is None and self.data is not None:
             for datarow in self.data:
-                datarow = sequential_task(None, datarow)
+                datarow = sequential_task(None, datarow, **kwargs)
         # Only ``circuit`` can be provided:
         elif self.circuitfactory is not None and self.data is None:
             newdata = []
             for circuit in self.circuitfactory:
-                newdata.append(sequential_task(circuit.copy(deep=True), {}))
+                newdata.append(sequential_task(circuit.copy(deep=True), {}, **kwargs))
             self.data = newdata
         else:
             raise_error(ValueError, "Both attributes circuitfactory and data are None.")

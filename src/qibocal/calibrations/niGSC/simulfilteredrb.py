@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import fnmatch
 from collections.abc import Iterable
-from itertools import product
+from copy import deepcopy
+from itertools import combinations, product
 
 import numpy as np
 import pandas as pd
@@ -144,6 +146,78 @@ def filter_function(circuit: Circuit, datarow: dict) -> dict:
     return datarow
 
 
+def some_filter_function(circuit: Circuit, samples: np.ndarray):
+    # Extract amount of used qubits and used shots.
+    nshots, nqubits = samples.shape
+    # For qubits the local dimension is 2.
+    d = 2
+    # Fuse the gates for each qubit.
+    fused_circuit = circuit.fuse(max_qubits=1)
+    # Extract for each qubit the ideal state.
+    # If depth = 0 there is only a measurement circuit and it does
+    # not have an implemented matrix. Set the ideal states to ground states.
+    if circuit.depth == 1:
+        ideal_states = np.tile(np.array([1, 0]), nqubits).reshape(nqubits, 2)
+    else:
+        ideal_states = np.array(
+            [fused_circuit.queue[k].matrix[:, 0] for k in range(nqubits)]
+        )
+    # Go through every irrep.
+    f_list = []
+    for l in np.array(list(product([False, True], repeat=nqubits))):
+        # Check if the trivial irrep is calculated
+        if not sum(l):
+            # In the end every value will be divided by ``nshots``.
+            a = nshots
+        else:
+            # Get the supported ideal outcomes and samples
+            # for this irreps projector.
+            suppl = ideal_states[l]
+            suppsamples = samples[:, l]
+            a = 0
+            # Go through all ``nshots`` samples
+            for s in suppsamples:
+                # Go through all combinations of (0,1) on the support
+                # of lambda ``l``.
+                for b in np.array(list(product([False, True], repeat=sum(l)))):
+                    # Calculate the sign depending on how many times the
+                    # nontrivial projector was used.
+                    # Take the product of all probabilities chosen by the
+                    # experimental outcome which are supported by the
+                    # inverse of b.
+                    a += (-1) ** sum(b) * np.prod(
+                        d * np.abs(suppl[~b][np.eye(2, dtype=bool)[s[~b]]]) ** 2
+                    )
+        # Normalize with inverse of effective measuremetn.
+        f_list.append(a * (d + 1) ** sum(l) / d**nqubits)
+    return f_list
+
+
+def marginalized_filter_function(gcircuit: Circuit, datarow: dict, nsupport=1) -> dict:
+    # Extract amount of used qubits, used shots and size of the marginalized support.
+    nshots, nqubits = datarow["samples"].shape
+    circuit = gcircuit.copy(deep=True)
+    # FIXME Remove the measurement from the queue, else the light_cone does not work.
+    circuit.queue.pop()
+    # Check if the support size is specified (should be <= nqubits)
+    supports = list(combinations(range(nqubits), nsupport))
+    # For qubits the local dimension is 2.
+    # d = 2
+    for support in supports:
+        # Marginalize the circuit
+        marginal_circuit, _ = deepcopy(circuit.light_cone(*support))
+        marginal_samples = np.take(np.array(datarow["samples"]), support, axis=1)
+        # Write a separate filter function that return a list of of filters from a circuit.
+        f_list = some_filter_function(
+            marginal_circuit, marginal_samples
+        )  # Maybe irrep labels can also be specified?
+
+        for kk in range(len(f_list)):
+            datarow[f"irrep{kk}^{support}"] = f_list[kk] / nshots / nsupport
+
+    return datarow
+
+
 def post_processing_sequential(experiment: Experiment):
     """Perform sequential tasks needed to analyze the experiment results.
 
@@ -155,6 +229,8 @@ def post_processing_sequential(experiment: Experiment):
 
     # Compute and add the ground state probabilities row by row.
     experiment.perform(filter_function)
+    experiment.perform(marginalized_filter_function, nsupport=1)
+    experiment.perform(marginalized_filter_function, nsupport=2)
 
 
 def get_aggregational_data(experiment: Experiment) -> pd.DataFrame:
@@ -175,23 +251,28 @@ def get_aggregational_data(experiment: Experiment) -> pd.DataFrame:
     # Go through every irreducible representation projector used in the filter function.
     for kk in range(2**nqubits):
         # This has to match the label chosen in ``filter_function``.
-        ylabel = f"irrep{kk}"
-        depths, ydata = experiment.extract(ylabel, "depth", "mean")
-        _, ydata_std = experiment.extract(ylabel, "depth", "std")
-        # Fit an exponential without linear offset.
-        popt, perr = fitting_methods.fit_exp1_func(depths, ydata)
-        data_list.append(
-            {
-                "depth": depths,  # The x-axis.
-                "data": ydata,  # The mean of ground state probability for each depth.
-                "2sigma": 2 * ydata_std,  # The standard deviation error for each depth.
-                "fit_func": "exp1_func",  # Which function was used to fit.
-                "popt": {"A": popt[0], "p": popt[1]},  # The fitting paramters.
-                "perr": {"A_err": perr[0], "p_err": perr[1]},  # The estimated errors.
-            }
-        )
-        # Store the name to set is as row name for the data.
-        index.append(ylabel)
+        list_ylabels = fnmatch.filter(list(experiment.data[0].keys()), f"irrep{kk}*")
+        for label in list_ylabels:
+            depths, ydata = experiment.extract(label, "depth", "mean")
+            _, ydata_std = experiment.extract(label, "depth", "std")
+            # Fit an exponential without linear offset.
+            popt, perr = fitting_methods.fit_exp1_func(depths, ydata)
+            data_list.append(
+                {
+                    "depth": depths,  # The x-axis.
+                    "data": ydata,  # The mean of ground state probability for each depth.
+                    "2sigma": 2
+                    * ydata_std,  # The standard deviation error for each depth.
+                    "fit_func": "exp1_func",  # Which function was used to fit.
+                    "popt": {"A": popt[0], "p": popt[1]},  # The fitting paramters.
+                    "perr": {
+                        "A_err": perr[0],
+                        "p_err": perr[1],
+                    },  # The estimated errors.
+                }
+            )
+            # Store the name to set is as row name for the data.
+            index.append(label)
     # Create a data frame out of the list with dictionaries.
     df = pd.DataFrame(data_list, index=index)
     return df
