@@ -17,7 +17,6 @@ import qibocal.calibrations.niGSC.basics.fitting as fitting_methods
 from qibocal.calibrations.niGSC.basics.circuitfactory import SingleCliffordsFactory
 from qibocal.calibrations.niGSC.basics.experiment import Experiment
 from qibocal.calibrations.niGSC.basics.plot import Report, scatter_fit_fig
-from qibocal.calibrations.niGSC.basics.utils import number_to_str
 
 
 class ModuleFactory(SingleCliffordsFactory):
@@ -204,6 +203,7 @@ def marginalized_filter_function(gcircuit: Circuit, datarow: dict, nsupport=1) -
     supports = list(combinations(range(nqubits), nsupport))
     # For qubits the local dimension is 2.
     # d = 2
+    irreps = list(product([0, 1], repeat=nqubits))
     for support in supports:
         # Marginalize the circuit
         marginal_circuit, _ = deepcopy(circuit.light_cone(*support))
@@ -214,7 +214,8 @@ def marginalized_filter_function(gcircuit: Circuit, datarow: dict, nsupport=1) -
         )  # Maybe irrep labels can also be specified?
 
         for kk in range(len(f_list)):
-            datarow[f"irrep{kk}^{support}"] = f_list[kk] / nshots / nsupport
+            # TODO normalization
+            datarow[f"irrep{irreps[kk]}^{support}"] = f_list[kk] / nshots
 
     return datarow
 
@@ -229,9 +230,10 @@ def post_processing_sequential(experiment: Experiment):
     """
 
     # Compute and add the ground state probabilities row by row.
-    experiment.perform(filter_function)
+    # experiment.perform(filter_function)
     experiment.perform(marginalized_filter_function, nsupport=1)
     experiment.perform(marginalized_filter_function, nsupport=2)
+    experiment.perform(marginalized_filter_function, nsupport=3)
 
 
 def get_aggregational_data(experiment: Experiment) -> pd.DataFrame:
@@ -249,10 +251,13 @@ def get_aggregational_data(experiment: Experiment) -> pd.DataFrame:
     # Needed for the amount of plots in the report
     nqubits = len(experiment.data[0]["samples"][0])
     data_list, index = [], []
+    irreps = list(product([0, 1], repeat=nqubits))
     # Go through every irreducible representation projector used in the filter function.
     for kk in range(2**nqubits):
         # This has to match the label chosen in ``filter_function``.
-        list_ylabels = fnmatch.filter(list(experiment.data[0].keys()), f"irrep{kk}*")
+        list_ylabels = fnmatch.filter(
+            list(experiment.data[0].keys()), f"irrep{irreps[kk]}*"
+        )
         for label in list_ylabels:
             depths, ydata = experiment.extract(label, "depth", "mean")
             _, ydata_std = experiment.extract(label, "depth", "std")
@@ -293,32 +298,28 @@ def build_report(experiment: Experiment, df_aggr: pd.DataFrame) -> Figure:
 
     # Initiate a report object.
     report = ModuleReport()
-    # Add general information to the table.
-
+    # Add general information to the object.
     report.info_dict["Number of qubits"] = len(experiment.data[0]["samples"][0])
     report.info_dict["Number of shots"] = len(experiment.data[0]["samples"])
     report.info_dict["runs"] = experiment.extract("samples", "depth", "count")[1][0]
     lambdas = iter(product([0, 1], repeat=int(report.info_dict["Number of qubits"])))
+    irreps = list(product([0, 1], repeat=len(experiment.data[0]["samples"][0])))
     for kk, l in enumerate(lambdas):
-        # Add the fitting parameters and  errors.
-        dfrow = df_aggr.loc[f"irrep{kk}"]
-        popt_pairs = (
-            list(dfrow["popt"].items())[::2] + list(dfrow["popt"].items())[1::2]
+        list_ylabels = fnmatch.filter(
+            list(experiment.data[0].keys()), f"irrep{irreps[kk]}*"
         )
-        report.info_dict[f"Irrep {l} Fit"] = "".join(
-            [f"{key}={number_to_str(value)} " for key, value in popt_pairs]
-        )
-        perr_pairs = (
-            list(dfrow["perr"].items())[::2] + list(dfrow["perr"].items())[1::2]
-        )
-        report.info_dict[f"Irrep {l} Deviations"] = "".join(
-            [f"{key}={number_to_str(value)} " for key, value in perr_pairs]
-        )
-        # Use the predefined ``scatter_fit_fig`` function from ``basics.utils`` to build the wanted
-        # plotly figure with the scattered filter function points and then mean per depth.
-        figdict = scatter_fit_fig(experiment, df_aggr, "depth", f"irrep{kk}")
-        # Add a subplot title for each irrep.
-        figdict["subplot_title"] = f"Irrep {l[0]}"
-        report.all_figures.append(figdict)
-    # Return the figure of the report object and the corresponding table.
+        # Add the fitting errors which will be displayed in a box under the plots.
+        for irrep_lable in list_ylabels:
+            report.info_dict[f"Fitting daviations {irrep_lable}"] = "".join(
+                [
+                    "{}:{:.3f} ".format(key, df_aggr.loc[irrep_lable]["perr"][key])
+                    for key in df_aggr.loc[irrep_lable]["perr"]
+                ]
+            )
+            # Use the predefined ``scatter_fit_fig`` function from ``basics.utils`` to build the wanted
+            # plotly figure with the scattered filter function points and then mean per depth.
+            figdict = scatter_fit_fig(experiment, df_aggr, "depth", irrep_lable)
+            # Add a subplot title for each irrep.
+            figdict["subplot_title"] = irrep_lable
+            report.all_figures.append(figdict)
     return report.build()

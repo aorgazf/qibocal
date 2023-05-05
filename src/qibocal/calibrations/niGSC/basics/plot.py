@@ -57,8 +57,8 @@ class Report:
             rows=int(l / divide_by) + l % divide_by,
             cols=1 if l == 1 else divide_by,
             subplot_titles=subplot_titles,
-            horizontal_spacing=0.1,
-            vertical_spacing=0.1,
+            # horizontal_spacing=0.1,
+            # vertical_spacing=0.1,
         )
         for count, fig_dict in enumerate(self.all_figures):
             plot_list = fig_dict["figs"]
