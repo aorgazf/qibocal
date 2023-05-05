@@ -33,12 +33,9 @@ class StandardRBResults(Results):
     """Standard RB outputs."""
 
     df: DataFrame
-    # amplitude: Dict[List[Tuple], str] = field(metadata=dict(update="drive_amplitude"))
-    # """Drive amplitude for each qubit."""
-    # length: Dict[List[Tuple], str] = field(metadata=dict(update="drive_length"))
-    # """Drive pulse duration. Same for all qubits."""
-    # fitted_parameters: Dict[List[Tuple], List]
-    # """Raw fitted parameters."""
+
+    def save(self, path):
+        self.df.to_pickle(path)
 
 
 class StandardRBData:
@@ -46,6 +43,12 @@ class StandardRBData:
 
     def __init__(self, experiment: ModuleExperiment):
         self.experiment = experiment
+    
+    def save(self, path):
+        self.experiment.save(path)
+    
+    def load(self, path):
+        self.experiment.load(path)
 
 
 def _acquisition(
@@ -71,4 +74,6 @@ def _fit(data: StandardRBData) -> StandardRBResults:
 
 def _plot(data: StandardRBData, fit: StandardRBResults, qubit):
     """Plotting function for StandardRB."""
-    return build_report(data.experiment, fit.df), " "
+    return [build_report(data.experiment, fit.df)], " a | b | c "
+
+standardrb = Routine(_acquisition, _fit, _plot)

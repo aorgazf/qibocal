@@ -1,6 +1,6 @@
-platform: qw5q_gold_qblox
+platform: tii1q_b1
 
-qubits: [0, 1, 2, 3, 4]
+qubits: [0]
 
 format: csv
 
@@ -137,15 +137,37 @@ actions:
   #     delay_between_pulses_step: 4 # must be a multiple of 4
   #     n_osc: 10
 
-  - id: ramsey detuned
+  - id: standardrb before
     priority: 0
+    operation: standardrb
+    main: ramsey detuned
+    parameters:
+      nqubits: 1
+      qubits: [0]
+      depths: [5, 10, 15, 20]
+      runs: 2
+      nshots: 1024
+
+  - id: ramsey detuned
+    priority: 100
     operation: ramsey
-    #main: single shot classification
+    main: standardrb after
     parameters:
       n_osc: 0
       delay_between_pulses_start: 4 # must be a multiple of 4 incl 0
       delay_between_pulses_end: 200
       delay_between_pulses_step: 4 # must be a multiple of 4
+
+  - id: standardrb after
+    priority: 200
+    operation: standardrb
+    # main: 
+    parameters:
+      nqubits: 1
+      qubits: [0]
+      depths: [5, 10, 15, 20]
+      runs: 2
+      nshots: 1024
 
   # - id: single shot classification
   #   priority: 0
