@@ -19,6 +19,7 @@ from .resonator_punchout import resonator_punchout
 from .resonator_punchout_attenuation import resonator_punchout_attenuation
 from .resonator_spectroscopy import resonator_spectroscopy
 from .standardrb import standardrb
+from .standardrb_nm import neldermeadrb
 
 
 class Operation(Enum):
@@ -41,3 +42,4 @@ class Operation(Enum):
     flipping = flipping
     dispersive_shift = dispersive_shift
     standardrb = standardrb
+    neldermeadrb = neldermeadrb
