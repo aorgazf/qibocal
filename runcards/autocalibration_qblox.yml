@@ -1,6 +1,6 @@
-# platform: tii1q_b1
+platform: qw5q_gold_qblox
 
-qubits: [0]
+qubits: [2]
 
 format: pickle
 
@@ -142,8 +142,8 @@ actions:
     operation: standardrb
     # main: ramsey detuned
     parameters:
-      nqubits: 1
-      qubits: [0]
+      nqubits: 5
+      qubits: [2]
       depths: [5, 10, 15, 20]
       runs: 2
       nshots: 1024

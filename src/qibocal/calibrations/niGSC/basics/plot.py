@@ -33,7 +33,7 @@ def plot_qq(folder: str, routine: str, qubit, format):
     # Build the figure/report using the responsible module.
     plotly_figure, fitting_report = module.build_report(experiment, aggr_df)
 
-    return [plotly_figure], fitting_report
+    return plotly_figure, fitting_report
 
 
 class Report:
@@ -81,7 +81,7 @@ class Report:
             width=1000,
         )
 
-        return fig, self.info_table()
+        return [fig], self.info_table()
 
     def info_table(self):
         return "".join(

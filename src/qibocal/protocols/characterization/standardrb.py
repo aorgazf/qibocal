@@ -47,6 +47,9 @@ class StandardRBData:
     def save(self, path):
         self.experiment.save(path)
 
+    def to_csv(self, path):
+        self.save(path)
+
     def load(self, path):
         self.experiment.load(path)
 
