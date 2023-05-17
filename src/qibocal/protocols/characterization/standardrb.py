@@ -43,10 +43,10 @@ class StandardRBData:
 
     def __init__(self, experiment: ModuleExperiment):
         self.experiment = experiment
-    
+
     def save(self, path):
         self.experiment.save(path)
-    
+
     def load(self, path):
         self.experiment.load(path)
 
@@ -74,6 +74,7 @@ def _fit(data: StandardRBData) -> StandardRBResults:
 
 def _plot(data: StandardRBData, fit: StandardRBResults, qubit):
     """Plotting function for StandardRB."""
-    return [build_report(data.experiment, fit.df)], " a | b | c "
+    return build_report(data.experiment, fit.df)
+
 
 standardrb = Routine(_acquisition, _fit, _plot)
