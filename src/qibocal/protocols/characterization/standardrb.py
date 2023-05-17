@@ -74,7 +74,7 @@ def _fit(data: StandardRBData) -> StandardRBResults:
 
 def _plot(data: StandardRBData, fit: StandardRBResults, qubit):
     """Plotting function for StandardRB."""
-    return [build_report(data.experiment, fit.df)], " a | b | c "
+    return build_report(data.experiment, fit.df)
 
 
 standardrb = Routine(_acquisition, _fit, _plot)

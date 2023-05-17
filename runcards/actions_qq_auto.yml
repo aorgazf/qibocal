@@ -1,8 +1,8 @@
-# platform: tii1q_b1
+platform: dummy
 
-qubits: [0]
+qubits: [0, 1, 2, 3, 4]
 
-format: pickle
+format: csv
 
 actions:
 
@@ -137,37 +137,15 @@ actions:
   #     delay_between_pulses_step: 4 # must be a multiple of 4
   #     n_osc: 10
 
-  - id: standardrb before
-    priority: 0
-    operation: standardrb
-    # main: ramsey detuned
-    parameters:
-      nqubits: 1
-      qubits: [0]
-      depths: [5, 10, 15, 20]
-      runs: 2
-      nshots: 1024
-
   # - id: ramsey detuned
-  #   priority: 100
+  #   priority: 0
   #   operation: ramsey
-  #   main: standardrb after
+  #   #main: single shot classification
   #   parameters:
   #     n_osc: 0
   #     delay_between_pulses_start: 4 # must be a multiple of 4 incl 0
   #     delay_between_pulses_end: 200
   #     delay_between_pulses_step: 4 # must be a multiple of 4
-
-  # - id: standardrb after
-  #   priority: 200
-  #   operation: standardrb
-  #   # main:
-  #   parameters:
-  #     nqubits: 1
-  #     qubits: [0]
-  #     depths: [5, 10, 15, 20]
-  #     runs: 2
-  #     nshots: 1024
 
   # - id: single shot classification
   #   priority: 0
