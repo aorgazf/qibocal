@@ -29,9 +29,6 @@ class ReadoutErrorMitigation:
 
         platform = self.platform
 
-        if nq != 2:
-            raise ValueError("Only 2 qubits supported for now.")
-
         for i in range(2**nq):
             state = format(i, f"0{nq}b")
             if platform:
@@ -48,7 +45,7 @@ class ReadoutErrorMitigation:
                     MZ_pulse = platform.create_MZ_pulse(qubit, start=measurement_start)
                     sequence.add(MZ_pulse)
                 results = platform.execute_pulse_sequence(sequence, nshots=nshots)
-                freqs = calculate_frequencies(results[qubits[0]], results[qubits[1]])
+                freqs = calculate_frequencies(results[qubits[0]], results[qubits[1]], results[qubits[2]])
             else:
                 c = Circuit(nqubits)
                 for q, bit in enumerate(state):
