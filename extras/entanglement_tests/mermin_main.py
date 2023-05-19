@@ -10,7 +10,7 @@ from qibolab.paths import qibolab_folder
 from readout_mitigation import ReadoutErrorMitigation
 from mermin_functions import MerminExperiment
 
-
+"""
 nshots = 10000
 runcard = "qibolab/src/qibolab/runcards/qw5q_gold_qblox.yml"
 timestr = time.strftime("%Y%m%d-%H%M")
@@ -37,9 +37,9 @@ mermin.execute(
     readout_mitigation=readout_mitigation,
     exact=True,
 )
-
 """
-Simulation version:
+
+#Simulation version:
 
 set_backend('numpy')
 
@@ -47,7 +47,7 @@ nshots = 10000
 readout_basis = [['X','X','Y'], ['X','Y','X'], ['Y','X','X'], ['Y','Y','Y']]
 nqubits = 5
 qubits = [0, 2, 3]
-rerr = (0.05, 0.25)
+rerr = (0.05, 0.2)
 
 readout_mitigation = ReadoutErrorMitigation(None, nqubits, qubits, rerr)
 
@@ -63,4 +63,4 @@ mermin.execute(qubits,
 	readout_mitigation=readout_mitigation,
 	exact=True)
 
-"""
+

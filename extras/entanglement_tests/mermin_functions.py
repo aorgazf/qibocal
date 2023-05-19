@@ -71,7 +71,7 @@ class MerminExperiment:
             )
         )
 
-        virtual_z_phases[qubits[0]] += np.pi/2
+        virtual_z_phases[qubits[0]] -= np.pi/2
 
         return sequence, virtual_z_phases
 
@@ -136,7 +136,7 @@ class MerminExperiment:
             c.add(gates.GPI2(qubits[2], np.pi / 2))
             c.add(gates.CZ(qubits[1], qubits[2]))
             c.add(gates.GPI2(qubits[2], -np.pi / 2))
-            p[0] += np.pi/2
+            p[0] -= np.pi/2
 
         else:
             c.add(gates.H(qubits[1]))
@@ -147,7 +147,6 @@ class MerminExperiment:
             c.add(gates.CZ(qubits[1], qubits[2]))
             c.add(gates.H(qubits[2]))
             c.add(gates.S(0))
-
         return c, p
 
     def create_mermin_circuits(
@@ -174,12 +173,13 @@ class MerminExperiment:
                     if native:
                         c.add(gates.GPI2(qubits[i], p[i]))
                     else:
-                        c.add(gates.S(i).dagger())
+                        c.add(gates.SDG(qubits[i]))
                         c.add(gates.H(qubits[i]))
+                        
             
             for qubit in qubits:
                 c.add(gates.M(qubit, p0=rerr[0], p1=rerr[1]))
-            mermin_circuits.add(c)
+            mermin_circuits.append(c)
 
         return mermin_circuits
 
