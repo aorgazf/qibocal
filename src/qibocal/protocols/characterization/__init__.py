@@ -15,6 +15,7 @@ from .qubit_spectroscopy import qubit_spectroscopy
 from .rabi.amplitude import rabi_amplitude
 from .rabi.length import rabi_length
 from .ramsey import ramsey
+from .RB.interleaved_rb import interleaved_rb
 from .RB.std_rb import StdRB
 from .resonator_punchout import resonator_punchout
 from .resonator_punchout_attenuation import resonator_punchout_attenuation
@@ -41,3 +42,4 @@ class Operation(Enum):
     flipping = flipping
     dispersive_shift = dispersive_shift
     StdRB = StdRB
+    interleaved_rb = interleaved_rb

@@ -9,12 +9,86 @@ from qibo.config import log
 from qibolab import Platform
 from qibolab.platforms.abstract import AbstractPlatform
 from qibolab.pulses import PulseSequence
-from qibolab.transpilers.unitary_decompositions import u3_decomposition
+from qibolab.transpilers.unitary_decompositions import (
+    two_qubit_decomposition,
+    u3_decomposition,
+)
 
 from qibocal.calibrations.niGSC.basics.fitting import exp1B_func, fit_exp1B_func
 from qibocal.calibrations.niGSC.basics.utils import gate_fidelity
 from qibocal.config import log
 from qibocal.plots.utils import get_color
+
+
+def _compile_gate(gate, platform, sequence, virtual_z_phases, moment_start):
+    """Compiler "inspired" by Stavros' PR #367"""
+    qubit = gate.target_qubits[0]
+    # Virtual gates
+    if isinstance(gate, gates.I):
+        pass
+    if isinstance(gate, gates.Z):
+        virtual_z_phases[qubit] += np.pi
+    if isinstance(gate, gates.RZ):
+        virtual_z_phases[qubit] += gate.parameters[0]
+    # X
+    if isinstance(gate, (gates.X, gates.Y)):
+        phase = 0 if isinstance(gate, gates.X) else -np.pi / 2
+        sequence.add(
+            platform.create_RX_pulse(
+                qubit,
+                start=moment_start,
+                relative_phase=virtual_z_phases[qubit] + phase,
+            )
+        )
+    # RX
+    if isinstance(gate, (gates.RX, gates.RY)):
+        phase = 0 if isinstance(gate, gates.RX) else -np.pi / 2
+        phase += 0 if gate.parameters[0] > 0 else -np.pi
+        sequence.add(
+            platform.create_RX90_pulse(
+                qubit,
+                start=moment_start,
+                relative_phase=virtual_z_phases[qubit] + phase,
+            )
+        )
+    # U3 pulses
+    if isinstance(gate, gates.U3):
+        theta, phi, lam = gate.parameters
+        virtual_z_phases[qubit] += lam
+        sequence.add(
+            platform.create_RX90_pulse(
+                qubit,
+                start=moment_start,
+                relative_phase=virtual_z_phases[qubit],
+            )
+        )
+        virtual_z_phases[qubit] += theta
+        sequence.add(
+            platform.create_RX90_pulse(
+                qubit,
+                start=sequence.finish,
+                relative_phase=virtual_z_phases[qubit] - np.pi,
+            )
+        )
+        virtual_z_phases[qubit] += phi
+
+    # CZ
+    if isinstance(gate, gates.CZ):
+        cz_sequence, cz_virtual_z_phases = platform.create_CZ_pulse_sequence(
+            gate.target_qubits
+        )
+
+        # Shift the pulses
+        for pulse in cz_sequence.pulses:
+            pulse.start += moment_start
+
+        # add pulses to the sequence
+        sequence.add(cz_sequence)
+
+        # update z_phases registers
+        for qubit in gate.target_qubits:
+            virtual_z_phases[qubit] += cz_virtual_z_phases[qubit]
+    return sequence, virtual_z_phases
 
 
 def RB_fit(x, A, p, B):
@@ -168,80 +242,98 @@ class RBSequence:
             if index == 0:
                 continue
             gate = INT_TO_GATE[index](qubit)
-            # Virtual gates
-            if isinstance(gate, gates.Z):
-                virtual_z_phases[qubit] += np.pi
-            if isinstance(gate, gates.RZ):
-                virtual_z_phases[qubit] += gate.parameters[0]
-            # X
-            if isinstance(gate, (gates.X, gates.Y)):
-                phase = 0 if isinstance(gate, gates.X) else -np.pi / 2
-                sequence.add(
-                    platform.create_RX_pulse(
-                        qubit,
-                        start=next_pulse_start,
-                        relative_phase=virtual_z_phases[qubit] + phase,
-                    )
-                )
-            # RX
-            if isinstance(gate, (gates.RX, gates.RY)):
-                phase = 0 if isinstance(gate, gates.RX) else -np.pi / 2
-                phase += 0 if gate.parameters[0] > 0 else -np.pi
-                sequence.add(
-                    platform.create_RX90_pulse(
-                        qubit,
-                        start=next_pulse_start,
-                        relative_phase=virtual_z_phases[qubit] + phase,
-                    )
-                )
-            # U3 pulses
-            if isinstance(gate, gates.U3):
-                theta, phi, lam = gate.parameters
-                virtual_z_phases[qubit] += lam
-                sequence.add(
-                    platform.create_RX90_pulse(
-                        qubit,
-                        start=next_pulse_start,
-                        relative_phase=virtual_z_phases[qubit],
-                    )
-                )
-                virtual_z_phases[qubit] += theta
-                sequence.add(
-                    platform.create_RX90_pulse(
-                        qubit,
-                        start=sequence.finish,
-                        relative_phase=virtual_z_phases[qubit] - np.pi,
-                    )
-                )
-                virtual_z_phases[qubit] += phi
+            sequence, virtual_z_phases = _compile_gate(
+                gate, platform, sequence, virtual_z_phases, next_pulse_start
+            )
             next_pulse_start = sequence.finish
 
+        # Invert
         invert_gate = self.inverse(circuit, qubit)
-        # U3 pulses
-        if isinstance(invert_gate, gates.U3):
-            theta, phi, lam = invert_gate.parameters
-            virtual_z_phases[qubit] += lam
-            sequence.add(
-                platform.create_RX90_pulse(
-                    qubit,
-                    start=next_pulse_start,
-                    relative_phase=virtual_z_phases[qubit],
-                )
-            )
-            virtual_z_phases[qubit] += theta
-            sequence.add(
-                platform.create_RX90_pulse(
-                    qubit,
-                    start=sequence.finish,
-                    relative_phase=virtual_z_phases[qubit] - np.pi,
-                )
-            )
-            virtual_z_phases[qubit] += phi
+        sequence, virtual_z_phases = _compile_gate(
+            invert_gate, platform, sequence, virtual_z_phases, next_pulse_start
+        )
 
         # Add measurement pulse
         measurement_start = sequence.finish
 
         MZ_pulse = platform.create_MZ_pulse(qubit, start=measurement_start)
         sequence.add(MZ_pulse)
+
+        return sequence
+
+
+class CZInterleavedRBSequence(RBSequence):
+    def __init__(self, platform, depths, runs):
+        super().__init__(platform, depths, runs)
+
+    def get_sequences(self, qubits):
+        sequences = defaultdict(list)
+        circuits = defaultdict(list)
+        for depth in self.depths:
+            for run in range(self.runs):
+                circuit = list(np.random.randint(0, len(INT_TO_GATE), (depth, 2)))
+                sequences[f"{depth}_{run}"].append(
+                    self.circuit_to_sequence(self.platform, qubits, circuit)
+                )
+                circuits[f"{depth}_{run}"].append(circuit)
+        return sequences, circuits
+
+    def inverse_two_qubits(self, ints):
+        unitary = np.linalg.multi_dot(
+            [
+                np.kron(INT_TO_GATE[i](0).matrix, INT_TO_GATE[i](1).matrix)
+                for i, j in ints[::-1]
+            ]
+        )
+        inverse_unitary = np.transpose(np.conj(unitary))
+        return two_qubit_decomposition(0, 1, inverse_unitary)
+
+    def circuit_to_sequence(self, platform: AbstractPlatform, qubits, circuit):
+        # Define PulseSequence
+        sequence = PulseSequence()
+        virtual_z_phases = defaultdict(int)
+
+        next_pulse_start = 0
+        for moment in circuit:
+            for qubit_index, gate_index in enumerate(moment):
+                if gate_index == 0:
+                    continue
+                qubit = qubits[qubit_index]
+                gate = INT_TO_GATE[gate_index](qubit)
+                next_pulse_start = 0
+
+                sequence, virtual_z_phases = _compile_gate(
+                    gate, platform, sequence, virtual_z_phases, next_pulse_start
+                )
+                next_pulse_start = sequence.finish
+            next_pulse_start = sequence.finish
+
+            # Interleave with CZ pulse
+            sequence, virtual_z_phases = _compile_gate(
+                gates.CZ(*qubits),
+                platform,
+                sequence,
+                virtual_z_phases,
+                next_pulse_start,
+            )
+
+            next_pulse_start = sequence.finish
+
+        # Invert the sequence
+        inverse_gate_list = self.inverse_two_qubits(circuit, qubit)
+        for gate in inverse_gate_list:
+            sequence, virtual_z_phases = _compile_gate(
+                gate,
+                platform,
+                sequence,
+                virtual_z_phases,
+                next_pulse_start,
+            )
+
+        # Add measurement pulses
+        measurement_start = sequence.finish
+        for qubit in qubits:
+            MZ_pulse = self.create_MZ_pulse(qubit, start=measurement_start)
+            sequence.add(MZ_pulse)
 
         return sequence
