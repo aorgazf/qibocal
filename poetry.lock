@@ -2878,7 +2878,7 @@ name = "setuptools"
 version = "67.8.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "setuptools-67.8.0-py3-none-any.whl", hash = "sha256:5df61bf30bb10c6f756eb19e7c9f3b473051f48db77fddbe06ff2ca307df9a6f"},
@@ -3636,4 +3636,4 @@ viz = ["pydot"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "e9a4eb0833cfc8bfb0ab813ad88a29f5cbc5dedea46197d7c742ded587b09f38"
+content-hash = "2cb4b2fd8c2d2f1ae6cf2d5dba3612d187c2637304af48fd67ba4df838267507"
