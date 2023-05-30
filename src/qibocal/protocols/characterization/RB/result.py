@@ -194,6 +194,18 @@ class DecayWithOffsetResult(DecayResult):
             return "DecayResult: Ap^m+B"
 
 
+@dataclass
+class ResultContainer:
+    result_list: list = field(default_factory=lambda: [])
+
+    def plot(self):
+        return [result.plot() for result in self.result_list]
+
+    def fit(self):
+        for result in self.result_list:
+            result.fit()
+
+
 def plot_decay_result(
     result: DecayResult, fig: Optional[go.Figure] = None
 ) -> go.Figure:
@@ -238,8 +250,8 @@ def plot_hists_result(result: DecayResult) -> go.Figure:
     return fig_hist
 
 
-def get_hists_data(data_agg: DecayResult):
-    signal = extract_from_data(data_agg, "signal", "depth")[1].reshape(
+def get_hists_data(data_agg: DecayResult, name_column="signal"):
+    signal = extract_from_data(data_agg, name_column, "depth")[1].reshape(
         -1, data_agg.attrs["niter"]
     )
     counts_list, bins_list = zip(*[np.histogram(x, bins=50) for x in signal])
